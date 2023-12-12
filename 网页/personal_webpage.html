@@ -1,0 +1,663 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《柒贰》</title>
+    <style>
+        body {   
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 1vw; /* Added responsive font size */
+        }
+
+        /* For smaller screens */
+        @media (max-width: 600px) {
+            body {
+                font-size: 3vw;
+            }
+
+            .mode-button, 
+            .font-button, 
+            .search-toggle, 
+            .top-button, 
+            .music-button, 
+            .menu-button, 
+            .ui-toggle-button {
+                padding: 0.5rem 1rem;
+            }
+        }
+
+        /* 添加平滑滚动效果 */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: top 0.3s; /* 添加动画效果 */
+        }
+
+        .search-bar {
+            background-color: #f5f5f5;
+            display: none; /* 默认搜索部分隐藏 */
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem;
+            position: fixed;
+            width: 50%;
+            top: 150px; /* Adjust this value if the header height changes */
+            z-index: 999;
+        }
+
+        .search-input {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            flex: 1;
+            margin-right: 0.5rem;
+        }
+
+        .search-button {
+            padding: 0.5rem 1rem;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        main {
+            margin-top: calc(5rem + 120px);
+            padding: 2rem;
+            font-size: 18px; /* 设置字体大小 */
+            line-height: 1.5; /* 设置行距，1.5 表示行距是字体大小的 1.5 倍 */
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        h2 {
+            margin-top: 2rem;
+            color: #444;
+        }
+
+        #result {
+            display: none;
+            margin-top: 1rem;
+            color: red;
+        }
+
+        .highlight {
+            background-color: #ADD8E6;  /* 淡蓝色 */
+        }
+
+        /* 夜间模式样式 */
+        .dark-mode {
+            background-color: black;
+            color: #b0b0b0;
+        }
+
+        /* 字体样式 */
+        .font-kaiti {
+            font-family: "KaiTi", sans-serif;
+        }
+
+        .font-heiti {
+            font-family: "HeiTi", sans-serif;
+        }
+
+        /* 动态背景效果 */
+        @keyframes gradientFlow {
+            0% {
+                background-position: 0% 50%;
+            }
+            100% {
+                background-position: 400% 50%;
+            }
+        }
+
+        body {
+            margin: 0;
+        }
+
+        #backgroundCanvas {
+            position: fixed; /* 更改为fixed */
+            top: 0;
+            left: 0;
+            z-index: -1;
+            filter: blur(20px);
+        }
+
+        /* 按钮样式 */
+        .mode-button, .font-button, .search-toggle, .top-button, .music-button {
+            position: fixed;
+            top: 0rem;
+            left: 0.5rem;
+            padding: 0.2rem;
+            margin-bottom: 0.2rem;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            border: none;
+            z-index: 1001; /* 保证在header之上 */
+        }
+
+        .font-button {
+            top: 1.9rem; /* 调整位置使其在夜间模式按钮下方 */
+        }
+
+        .search-toggle {
+            top: 3.8rem; /* 调整位置使其在字体切换按钮下方 */
+        }
+
+        .music-button {
+            top: 5.7rem;
+        }
+        
+        /* 返回顶部按钮样式 */
+        .top-button {
+            top: 7.6rem;
+        }
+
+        /* 目录按钮样式 */
+        .menu-button {
+            position: fixed;
+            top: -0.5rem;
+            right: 0rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            border: none;
+            z-index: 1001;
+        }
+
+        /* 目录列表样式 */
+        .toc-list {
+            position: fixed;
+            top: 0;
+            right: -300px; /* 初始化为隐藏 */
+            height: 100%;
+            width: 250px;
+            background-color: #323232;
+            color: #fff; /* 将文本颜色设置为白色 */
+            overflow-y: auto;
+            padding: 0rem;
+            padding-top: 8rem; /* 添加此属性以确保从8rem开始显示目录 */
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transition: right 0.3s; /* 平滑滑动效果 */
+            direction: rtl; /* 设置从右到左的文本方向 */
+        }
+
+        .toc-list h3 {
+            margin-top: 0;
+            direction: ltr; /* 为目录标题和链接设置从左到右的文本方向 */
+        }
+
+        .toc-list a {
+            text-decoration: none;
+            color: #fff;
+            display: block;
+            padding: 0.5rem 0;
+            direction: ltr; /* 为目录标题和链接设置从左到右的文本方向 */
+        }
+
+        .ui-toggle-button {
+            position: fixed;
+            top: -0.5rem;
+            right: 4rem; /* 根据目录按钮的宽度调整 */
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            border: none;
+            z-index: 1001;
+        }
+
+        /* Rounded corners and hover effects for top-left and top-right buttons */
+        .mode-button, .font-button, .search-toggle, .top-button, .music-button, .menu-button, .ui-toggle-button {
+            transition: top 0.3s;
+            border-radius: 10px;
+            border: 0px solid rgba(255, 255, 255, 0.3);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .mode-button:hover, .font-button:hover, .search-toggle:hover, .top-button:hover, .music-button:hover, .menu-button:hover, .ui-toggle-button:hover {
+            background-color: #555; /* 悬停时的背景颜色 */
+            border-color: rgba(255, 255, 255, 0.7);
+        }
+
+    </style>
+</head>
+
+<body class="dark-mode font-kaiti">
+
+<canvas id="backgroundCanvas"></canvas> 
+
+    <button class="mode-button" onclick="toggleDarkMode()">
+        <canvas id="darkModeIcon" width="20" height="20"></canvas>
+        夜间模式
+    </button>
+    <button class="font-button" onclick="toggleFont()">
+        <canvas id="fontIcon" width="20" height="20"></canvas>
+        切换字体
+    </button>
+    <button class="search-toggle" onclick="toggleSearch()">
+        <canvas id="searchIcon" width="20" height="20"></canvas>
+        搜索
+    </button>
+    <button class="top-button" onclick="scrollToTop()">
+        <canvas id="topIcon" width="20" height="20"></canvas>
+        返回顶部
+    </button>
+    <button class="music-button" onclick="toggleMusic()">
+        <canvas id="musicIcon" width="20" height="20"></canvas>
+        播放音乐
+    </button>
+
+    <button class="menu-button" onclick="toggleTOC()">
+        ☰ 目录
+    </button>
+    <div class="toc-list">
+        <h3>内容目录</h3>
+        <!-- JavaScript将在此处动态生成目录列表 -->
+    </div>
+
+    <button class="ui-toggle-button" onclick="toggleUI()">
+        隐藏UI
+    </button>
+
+
+    <header>
+        <h1>《柒贰》</h1>
+        <p>故事梗概/背景设定：主角洛白，在公元七二零年与公元二零七二年之间穿梭。</p>
+        <p>七二零年：开元初期------------------------------二零七二：能源无限</p>
+    </header>
+    <div class="search-bar">
+        <input type="text" class="search-input" placeholder="搜索..." id="searchInput">
+        <button class="search-button" onclick="searchText()">搜索</button>
+        <div id="result"></div>
+    </div>
+    <main>
+
+
+        <h2>第零章 -《所以，我就是那个穿越者？》</h2>
+
+        <h2>第1章 -《第1章示例》</h2>
+        <p>这。里。只。是。一。个。示。例。但。你。要。知。道。我。永。远。爱。你。
+        <h2>第2章 -《第2章示例》</h2>
+        <p>这。里。只。是。一。个。示。例。但。你。要。知。道。我。永。远。爱。你。
+        <h2>第3章 -《第3章示例》</h2>
+        <p>这。里。只。是。一。个。示。例。但。你。要。知。道。我。永。远。爱。你。
+        <h2>第4章 -《第4章示例》</h2>
+        <p>这。里。只。是。一。个。示。例。但。你。要。知。道。我。永。远。爱。你。
+        <h2>第5章 -《第5章示例》</h2>
+        <p>这。里。只。是。一。个。示。例。但。你。要。知。道。我。永。远。爱。你。
+
+
+    </main>
+
+    <!-- Audio tags -->
+    <audio id="darkModeMusic" loop>
+        <source src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_from_the_Isabella_Stewart_Gardner_Museum_Boston/Paavali_Jumppanen_piano/Selections_Summer_2012/Paavali_Jumppanen_piano_-_13_-_MOZART_-_Piano_Sonata_No_12_in_F_Major_K_332.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="lightModeMusic" loop>
+        <source src="https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/izb7LCYYFsgGMpaEzhXIwTDXDdxxTmFICKC8RBTb.mp3" type="audio/mpeg">
+    </audio>
+
+<script>
+    document.body.innerHTML = document.body.innerHTML.replace(/。+/g, match => match + '<br>');
+    
+    // 获取夜间模式的canvas和context
+    const darkModeCanvas = document.getElementById("darkModeIcon");
+    const darkModeCtx = darkModeCanvas.getContext("2d");
+    darkModeCtx.beginPath();
+    darkModeCtx.arc(10, 14, 6, -0.25 * Math.PI, 0.75 * Math.PI, false);
+    darkModeCtx.quadraticCurveTo(18, 14, 10, 2);
+    darkModeCtx.fillStyle = "white";
+    darkModeCtx.fill();
+
+    // 绘制字体切换图标 - 字母A的形状
+    const fontCanvas = document.getElementById("fontIcon");
+    const fontCtx = fontCanvas.getContext("2d");
+    fontCtx.font = "15px Times New Roman";
+    fontCtx.fillStyle = "white";
+    fontCtx.fillText("A", 5, 20);
+
+    // 绘制搜索图标 - 放大镜
+    const searchCanvas = document.getElementById("searchIcon");
+    const searchCtx = searchCanvas.getContext("2d");
+    searchCtx.beginPath();
+    searchCtx.arc(8, 14, 5, 0, 2 * Math.PI);
+    searchCtx.moveTo(14, 18);
+    searchCtx.lineTo(22, 24);
+    searchCtx.strokeStyle = "white";
+    searchCtx.stroke();
+
+    // 绘制返回顶部图标 - 向上的箭头
+    const topCanvas = document.getElementById("topIcon");
+    const topCtx = topCanvas.getContext("2d");
+    topCtx.beginPath();
+    topCtx.moveTo(10, 10);
+    topCtx.lineTo(10, 28);
+    topCtx.moveTo(10, 10);
+    topCtx.lineTo(6, 14);
+    topCtx.moveTo(10, 10);
+    topCtx.lineTo(14, 14);
+    topCtx.moveTo(2, 10);
+    topCtx.lineTo(18, 10);
+    topCtx.strokeStyle = "white";
+    topCtx.stroke();
+
+    // 绘制播放音乐图标 - 音符
+    const musicCanvas = document.getElementById("musicIcon");
+    const musicCtx = musicCanvas.getContext("2d");
+    musicCtx.beginPath();
+    musicCtx.moveTo(6, 4);
+    musicCtx.quadraticCurveTo(4, 6, 6, 12);
+    musicCtx.quadraticCurveTo(8, 16, 5, 20);
+    musicCtx.moveTo(6, 12);
+    musicCtx.lineTo(14, 10);
+    musicCtx.quadraticCurveTo(16, 8, 14, 16);
+    musicCtx.quadraticCurveTo(12, 20, 9, 18);
+    musicCtx.strokeStyle = "white";
+    musicCtx.stroke();
+
+    function searchText() {
+        const inputVal = document.getElementById("searchInput").value;
+        const mainContent = document.querySelector("main");
+
+        // Remove existing highlights
+        mainContent.innerHTML = mainContent.innerHTML.replace(/<span class="highlight">([^<]+)<\/span>/g, "$1");
+
+        if (inputVal) {
+            const count = (mainContent.innerText.match(new RegExp(inputVal, "g")) || []).length;
+            
+            // Add highlights
+            const regex = new RegExp(inputVal, 'g');
+            mainContent.innerHTML = mainContent.innerHTML.replace(regex, `<span class="highlight">${inputVal}</span>`);
+
+            const resultDiv = document.getElementById("result");
+            resultDiv.textContent = `关键词 "${inputVal}" 出现了 ${count} 次。`;
+            resultDiv.style.display = "block";
+        } else {
+            document.getElementById("result").style.display = "none";
+        }
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function() {
+        if (!this.value) {
+            document.getElementById("result").style.display = "none";
+            
+            // Remove highlights when input is cleared
+            const mainContent = document.querySelector("main");
+            mainContent.innerHTML = mainContent.innerHTML.replace(/<span class="highlight">([^<]+)<\/span>/g, "$1");
+        }
+    });
+
+    let fontIndex = 0;
+    const fonts = ['font-kaiti', 'font-heiti'];
+
+    let darkMode = true;  // 默认为夜间模式
+
+    function toggleDarkMode() {
+        darkMode = !darkMode;
+
+        if (darkMode) {
+            document.body.classList.add("dark-mode");
+        } else {
+            document.body.classList.remove("dark-mode");
+        };
+        circles.forEach(circle => {
+        circle.color = darkMode ? "white" : "black";
+    })
+    }
+
+    function toggleFont() {
+        const mainElement = document.querySelector("main");
+        mainElement.classList.remove(fonts[fontIndex]);
+
+        fontIndex++;
+        if (fontIndex >= fonts.length) {
+            fontIndex = 0;
+        }
+
+        mainElement.classList.add(fonts[fontIndex]);
+    }
+
+    function toggleSearch() {
+        const searchBar = document.querySelector(".search-bar");
+        if (searchBar.style.display === "none" || searchBar.style.display === "") {
+            searchBar.style.display = "flex";
+        } else {
+            searchBar.style.display = "none";
+        }
+    }
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 显示返回顶部按钮当页面向下滚动
+    window.addEventListener('scroll', function() {
+        const topButton = document.querySelector('.top-button');
+        const uiToggleButton = document.querySelector(".ui-toggle-button");
+        
+        if (uiToggleButton.textContent === "隐藏UI") { // 只在UI未被隐藏时执行
+            if (window.pageYOffset > 100) {  // 当页面向下滚动超过200px时显示按钮
+                topButton.style.display = 'block';
+            } else {
+                topButton.style.display = 'none';
+            }
+        }
+    });
+
+    function drawMusicIcon() {
+        const musicCanvas = document.getElementById("musicIcon");
+        const musicCtx = musicCanvas.getContext("2d");
+        musicCtx.beginPath();
+        musicCtx.moveTo(6, 4);
+        musicCtx.quadraticCurveTo(4, 6, 6, 12);
+        musicCtx.quadraticCurveTo(8, 16, 5, 20);
+        musicCtx.moveTo(6, 12);
+        musicCtx.lineTo(14, 10);
+        musicCtx.quadraticCurveTo(16, 8, 14, 16);
+        musicCtx.quadraticCurveTo(12, 20, 9, 18);
+        musicCtx.strokeStyle = "white";  // 设置线条颜色为白色
+        musicCtx.stroke();
+    }
+
+    let musicStarted = false;
+    let musicPlaying = false;  // 新增的变量，用于跟踪音乐是否正在播放
+
+    function toggleMusic() {
+        const darkMusic = document.getElementById("darkModeMusic");
+        const lightMusic = document.getElementById("lightModeMusic");
+        const musicButton = document.querySelector(".music-button");
+        const musicIconHTML = '<canvas id="musicIcon" width="20" height="20"></canvas>';  // 音符图标的HTML字符串
+
+        if (!musicStarted) {
+            if (darkMode) {
+                darkMusic.play();
+            } else {
+                lightMusic.play();
+            }
+            musicStarted = true;
+            musicPlaying = true;
+            musicButton.innerHTML = musicIconHTML + " 暂停播放";  // 修改按钮内容为“音符图标+暂停播放”
+            drawMusicIcon(); // 重新绘制音符图标
+        } else {
+            if (musicPlaying) {
+                if (darkMode) {
+                    darkMusic.pause();
+                } else {
+                    lightMusic.pause();
+                }
+                musicPlaying = false;
+                musicButton.innerHTML = musicIconHTML + " 播放音乐";  // 修改按钮内容为“音符图标+播放音乐”
+                drawMusicIcon(); // 重新绘制音符图标
+            } else {
+                if (darkMode) {
+                    darkMusic.play();
+                } else {
+                    lightMusic.play();
+                }
+                musicPlaying = true;
+                musicButton.innerHTML = musicIconHTML + " 暂停播放";  // 修改按钮内容为“音符图标+暂停播放”
+                drawMusicIcon(); // 重新绘制音符图标
+            }
+        }
+    }
+
+    // 动态生成目录
+    const tocList = document.querySelector('.toc-list');
+    const h2Elements = document.querySelectorAll('h2');
+    h2Elements.forEach((h2, index) => {
+        const listItem = document.createElement('a');
+        const id = 'heading-' + index;
+        h2.id = id;
+        listItem.href = '#' + id;
+        listItem.textContent = h2.textContent;
+        tocList.appendChild(listItem);
+    });
+
+    // 切换目录的滑动显示/隐藏
+    function toggleTOC() {
+        const tocList = document.querySelector('.toc-list');
+        if (tocList.style.right === '0px' || tocList.style.right === '') {
+            tocList.style.right = '-300px';
+        } else {
+            tocList.style.right = '0px';
+        }
+    }
+
+    function toggleUI() {
+        const uiElements = [
+            document.querySelector(".mode-button"),
+            document.querySelector(".font-button"),
+            document.querySelector(".search-toggle"),
+            document.querySelector(".top-button"),
+            document.querySelector(".music-button"),
+            document.querySelector(".menu-button"),
+            document.querySelector("header")
+        ];
+
+        // 将返回顶部按钮加入到uiElements列表中
+        if (window.pageYOffset > 200) {  // 如果当前页面已经向下滚动超过200px
+            uiElements.push(document.querySelector('.top-button'));
+        }
+
+        const uiToggleButton = document.querySelector(".ui-toggle-button");
+
+        if (uiToggleButton.textContent === "隐藏UI") {
+            uiElements.forEach(element => element.style.display = "none");
+            uiToggleButton.textContent = "显示UI";
+        } else {
+            uiElements.forEach(element => element.style.display = "block");
+            uiToggleButton.textContent = "隐藏UI";
+        }
+    }
+
+    const canvas = document.getElementById("backgroundCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    class Circle {
+        constructor(x, y, radius, dx, dy, color) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.dx = dx;
+            this.dy = dy;
+            this.color = color;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = this.color;  // 使用strokeStyle而不是fillStyle
+            ctx.stroke();  // 使用stroke方法而不是fill方法
+            ctx.closePath();
+        }
+
+        update() {
+            this.x += this.dx;
+            this.y += this.dy;
+
+            // 碰撞检测
+            if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                this.dx = -this.dx;
+            }
+
+            if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                this.dy = -this.dy;
+            }
+
+            this.draw();
+        }
+    }
+
+    let circles = [];
+    for (let i = 0; i < 50; i++) {
+        let radius = Math.random() * 50 + 50;
+        let x = Math.random() * (canvas.width - 2 * radius) + radius;
+        let y = Math.random() * (canvas.height - 2 * radius) + radius;
+        let dx = (Math.random() - 0.5) * 2;
+        let dy = (Math.random() - 0.5) * 2;
+        let color = darkMode ? "white" : "black";
+        circles.push(new Circle(x, y, radius, dx, dy, color));
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        circles.forEach(circle => circle.update());
+    }
+
+    animate();
+
+    let lastScrollTop = 0; // 用于检测滚动方向
+    window.addEventListener("scroll", function() {
+        let st = window.pageYOffset || document.documentElement.scrollTop;
+
+        if (st > lastScrollTop && st > 200) { // 当滚动超过200px并且是向下滚动时
+            document.querySelector("header").style.top = "-180px"; // 设置header的top为-100px，使其向上滑动并隐藏
+            // 为左上角和右上角的按钮设置top为-50px，使其向上滑动并隐藏
+            document.querySelectorAll(".mode-button, .font-button, .search-toggle, .top-button, .music-button, .menu-button, .ui-toggle-button").forEach(el => {
+                el.style.top = "-50px";
+            });
+        } else {
+            document.querySelector("header").style.top = "0"; // 当滚动方向改变时，设置header的top为0，使其显示
+            // 为左上角和右上角的按钮设置top为其原始值，使其显示
+            document.querySelector(".mode-button").style.top = "0rem";
+            document.querySelector(".font-button").style.top = "1.9rem";
+            document.querySelector(".search-toggle").style.top = "3.8rem";
+            document.querySelector(".music-button").style.top = "5.7rem";
+            document.querySelector(".top-button").style.top = "7.6rem";
+            document.querySelector(".menu-button").style.top = "-0.5rem";
+            document.querySelector(".ui-toggle-button").style.top = "-0.5rem";
+        }
+
+        lastScrollTop = st <= 0 ? 0 : st; // 更新lastScrollTop的值
+    }, false);
+
+
+</script>
+</body>
+</html>

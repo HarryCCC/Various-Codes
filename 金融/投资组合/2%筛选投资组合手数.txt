@@ -1,0 +1,14 @@
+
+Optimal Risky Portfolio (ORP):
+上海莱士002252.SZ: Weight=25.64%, Closing Price=7.25, Adjusted Hands=7.42, Test Hands=353
+博硕科技300951.SZ: Weight=31.22%, Closing Price=65.46, Adjusted Hands=1.00, Test Hands=47
+交建股份603815.SH: Weight=43.14%, Closing Price=7.88, Adjusted Hands=11.48, Test Hands=547
+ORP Expected Return: 0.26%
+ORP Risk (Standard Deviation): 1.59%
+
+Minimum Variance Portfolio (MVP):
+上海莱士002252.SZ: Weight=64.03%, Closing Price=7.25, Adjusted Hands=83.39, Test Hands=883
+珀莱雅603605.SH: Weight=11.43%, Closing Price=107.90, Adjusted Hands=1.00, Test Hands=10
+交建股份603815.SH: Weight=24.54%, Closing Price=7.88, Adjusted Hands=29.41, Test Hands=311
+MVP Expected Return: 0.07%
+MVP Risk (Standard Deviation): 0.77%

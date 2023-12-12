@@ -1,0 +1,94 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <title>国庆抽奖活动</title>  
+    <style>  
+        body {  
+            background-color: #F5DEB3;  
+            font-family: Arial, sans-serif;  
+        }  
+          
+        .container {  
+            max-width: 600px;  
+            margin: 0 auto;  
+            padding: 50px;  
+        }  
+          
+        h1 {  
+            text-align: center;  
+            color: #8B0000;  
+            font-size: 36px;  
+            margin-bottom: 30px;  
+        }  
+          
+        .logo {  
+            display: block;  
+            margin: 0 auto;  
+            width: 200px;  
+            height: 200px;  
+            background-image: url('11_logo.png');  
+            background-size: cover;  
+            margin-bottom: 50px;  
+        }  
+          
+        .prize {  
+            font-size: 24px;  
+            color: #333;  
+            margin-bottom: 20px;  
+        }  
+          
+        .btn {  
+            display: block;  
+            width: 200px;  
+            height: 50px;  
+            background-color: #E69F00;  
+            color: #FFF;  
+            text-align: center;  
+            line-height: 50px;  
+            font-size: 20px;  
+            border-radius: 5px;  
+            margin: 0 auto;  
+            cursor: pointer;  
+        }  
+          
+        .btn:hover {  
+            background-color: #FFA500;  
+        }  
+          
+        #result {  
+            font-size: 24px;  
+            text-align: center;  
+            margin-top: 30px;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="container">  
+        <h1>国庆抽奖活动</h1>  
+        <div class="logo"></div>  
+        <div class="prize">一等奖：10%</div>  
+        <div class="prize">二等奖：20%</div>  
+        <div class="prize">三等奖：30%</div>  
+        <div class="prize">未获奖：40%</div>  
+        <div class="btn" onclick="drawLottery()">立即抽奖</div>  
+        <div id="result"></div>  
+    </div>  
+      
+    <script>  
+        function drawLottery() {  
+            var result = Math.random() * 100;  
+            var prize;  
+            if (result <= 10) {  
+                prize = "一等奖";  
+            } else if (result <= 30) {  
+                prize = "二等奖";  
+            } else if (result <= 60) {  
+                prize = "三等奖";  
+            } else {  
+                prize = "未获奖";  
+            }  
+            document.getElementById("result").innerHTML = "恭喜您获得了：" + prize;  
+        }  
+    </script>  
+</body>  
+</html>
