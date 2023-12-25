@@ -112,7 +112,7 @@ test_hands_mvp = calculate_test_hands(selected_weights_std_min, selected_closing
 
 # Append the test hand information to the TXT file
 with open("predict/1%筛选投资组合手数.txt", "w") as file:
-    file.write("Optimal Risky Portfolio (ORP):")
+    file.write("Optimal Risky Portfolio (ORP):\n")
     for name_code, weight, closing_price, adjusted_hands, test_hand in zip(selected_stock_names_codes_orp, selected_weights_sharpe_max, selected_closing_prices_orp, adjusted_hands_orp, test_hands_orp):
         file.write(f"{name_code}: Weight={weight*100:.2f}%, Closing Price={closing_price:.2f}, Adjusted Hands={adjusted_hands:.2f}, Test Hands={test_hand}\n")
     file.write(f"ORP Expected Return: {return_sharpe_max*100:.2f}%\n")
