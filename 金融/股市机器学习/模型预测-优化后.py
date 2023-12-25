@@ -14,7 +14,7 @@ import numpy as np
 '''
 
 # 加载数据，跳过前两行
-predicted_data_path = 'predicted_data.xlsx'
+predicted_data_path = 'predict/predict_data.xlsx'
 df = pd.read_excel(predicted_data_path, header=None, skiprows=2)
 
 #筛风险回报和基本面
