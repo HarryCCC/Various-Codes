@@ -1,22 +1,23 @@
 Optimal Risky Portfolio (ORP):
-德业股份605117.SH: Weight=1.83%, Closing Price=75.50, Adjusted Hands=1.00, Test Hands=2
-中国稀土000831.SZ: Weight=3.49%, Closing Price=27.55, Adjusted Hands=5.21, Test Hands=12
-兰花科创600123.SH: Weight=36.41%, Closing Price=10.31, Adjusted Hands=145.32, Test Hands=353
-辽港股份601880.SH: Weight=20.88%, Closing Price=1.45, Adjusted Hands=592.69, Test Hands=1440
-北方铜业000737.SZ: Weight=31.08%, Closing Price=5.62, Adjusted Hands=227.56, Test Hands=552
-上海能源600508.SH: Weight=1.03%, Closing Price=13.83, Adjusted Hands=3.06, Test Hands=7
-华峰铝业601702.SH: Weight=4.11%, Closing Price=16.85, Adjusted Hands=10.03, Test Hands=24
-圆通速递600233.SH: Weight=1.17%, Closing Price=12.11, Adjusted Hands=3.97, Test Hands=9
-ORP Expected Return: 0.12%
-ORP Risk (Standard Deviation): 0.66%
+永艺股份603600.SH: Weight=36.66%, Closing Price=11.28, Adjusted Hands=39.10, Test Hands=325
+中集集团000039.SZ: Weight=40.97%, Closing Price=8.29, Adjusted Hands=59.45, Test Hands=494
+伟明环保603568.SH: Weight=1.43%, Closing Price=17.19, Adjusted Hands=1.00, Test Hands=8
+科达制造600499.SH: Weight=1.60%, Closing Price=11.97, Adjusted Hands=1.61, Test Hands=13
+佩蒂股份300673.SZ: Weight=8.51%, Closing Price=14.11, Adjusted Hands=7.25, Test Hands=60
+稳健医疗300888.SZ: Weight=3.80%, Closing Price=37.54, Adjusted Hands=1.22, Test Hands=10
+金瑞矿业600714.SH: Weight=1.96%, Closing Price=9.71, Adjusted Hands=2.43, Test Hands=20
+永兴材料002756.SZ: Weight=5.06%, Closing Price=57.10, Adjusted Hands=1.07, Test Hands=8
+ORP Expected Return: 0.23%
+ORP Risk (Standard Deviation): 0.98%
 
 Minimum Variance Portfolio (MVP):
-科达制造600499.SH: Weight=20.26%, Closing Price=10.32, Adjusted Hands=8.35, Test Hands=196
-兰花科创600123.SH: Weight=19.13%, Closing Price=10.31, Adjusted Hands=7.90, Test Hands=185
-辽港股份601880.SH: Weight=41.77%, Closing Price=1.45, Adjusted Hands=122.57, Test Hands=2880
-北方铜业000737.SZ: Weight=5.82%, Closing Price=5.62, Adjusted Hands=4.41, Test Hands=103
-上海能源600508.SH: Weight=3.25%, Closing Price=13.83, Adjusted Hands=1.00, Test Hands=23
-华峰铝业601702.SH: Weight=5.58%, Closing Price=16.85, Adjusted Hands=1.41, Test Hands=33
-圆通速递600233.SH: Weight=4.19%, Closing Price=12.11, Adjusted Hands=1.47, Test Hands=34
-MVP Expected Return: 0.02%
-MVP Risk (Standard Deviation): 0.47%
+永艺股份603600.SH: Weight=3.22%, Closing Price=11.28, Adjusted Hands=2.88, Test Hands=28
+中集集团000039.SZ: Weight=15.80%, Closing Price=8.29, Adjusted Hands=19.20, Test Hands=190
+伟明环保603568.SH: Weight=23.58%, Closing Price=17.19, Adjusted Hands=13.82, Test Hands=137
+科达制造600499.SH: Weight=1.19%, Closing Price=11.97, Adjusted Hands=1.00, Test Hands=9
+杭州银行600926.SH: Weight=16.60%, Closing Price=10.11, Adjusted Hands=16.55, Test Hands=164
+佩蒂股份300673.SZ: Weight=3.56%, Closing Price=14.11, Adjusted Hands=2.54, Test Hands=25
+稳健医疗300888.SZ: Weight=25.97%, Closing Price=37.54, Adjusted Hands=6.97, Test Hands=69
+金瑞矿业600714.SH: Weight=10.08%, Closing Price=9.71, Adjusted Hands=10.46, Test Hands=103
+MVP Expected Return: 0.01%
+MVP Risk (Standard Deviation): 0.62%

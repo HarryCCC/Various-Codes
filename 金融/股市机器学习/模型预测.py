@@ -14,7 +14,7 @@ import numpy as np
 '''
 
 # 加载数据，跳过前两行
-predicted_data_path = 'predict/predict_data.xlsx'
+predicted_data_path = 'predict_data.xlsx'
 df = pd.read_excel(predicted_data_path, header=None, skiprows=2)
 
 #筛风险回报和基本面
@@ -90,7 +90,7 @@ results.sort(key=lambda x: x[2], reverse=True)
 
 # 输出排序后的结果到txt文件
 with open('predictions.txt', 'w') as file:
-    # 首先输出预期结果最高的五只股票的代码
+    # 首先输出预期结果最高的10只股票的代码
     file.write("Top 10 Predicted Stocks:\n")
     for stock in results[:10]:
         file.write(f"{stock[0]}\n")
