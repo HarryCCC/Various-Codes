@@ -1,0 +1,22 @@
+Optimal Risky Portfolio (ORP):
+永艺股份603600.SH: Weight=17.44%, Closing Price=12.55, Adjusted Hands=15.66, Test Hands=138
+联影医疗688271.SH: Weight=11.97%, Closing Price=134.93, Adjusted Hands=1.00, Test Hands=8
+音飞储存603066.SH: Weight=6.21%, Closing Price=14.04, Adjusted Hands=4.98, Test Hands=44
+杭州银行600926.SH: Weight=5.59%, Closing Price=10.38, Adjusted Hands=6.07, Test Hands=53
+江苏银行600919.SH: Weight=25.71%, Closing Price=7.04, Adjusted Hands=41.16, Test Hands=365
+中煤能源601898.SH: Weight=30.25%, Closing Price=10.44, Adjusted Hands=32.66, Test Hands=289
+ST升达002259.SZ: Weight=2.83%, Closing Price=3.26, Adjusted Hands=9.78, Test Hands=86
+ORP Expected Return: 0.20%
+ORP Risk (Standard Deviation): 0.67%
+
+Minimum Variance Portfolio (MVP):
+永艺股份603600.SH: Weight=5.66%, Closing Price=12.55, Adjusted Hands=14.17, Test Hands=45
+联影医疗688271.SH: Weight=4.29%, Closing Price=134.93, Adjusted Hands=1.00, Test Hands=3
+音飞储存603066.SH: Weight=3.43%, Closing Price=14.04, Adjusted Hands=7.67, Test Hands=24
+杭州银行600926.SH: Weight=6.18%, Closing Price=10.38, Adjusted Hands=18.73, Test Hands=59
+江苏银行600919.SH: Weight=23.50%, Closing Price=7.04, Adjusted Hands=104.99, Test Hands=333
+三峡能源600905.SH: Weight=25.37%, Closing Price=4.24, Adjusted Hands=188.14, Test Hands=598
+中煤能源601898.SH: Weight=10.26%, Closing Price=10.44, Adjusted Hands=30.90, Test Hands=98
+ST升达002259.SZ: Weight=21.32%, Closing Price=3.26, Adjusted Hands=205.62, Test Hands=653
+MVP Expected Return: 0.01%
+MVP Risk (Standard Deviation): 0.47%
