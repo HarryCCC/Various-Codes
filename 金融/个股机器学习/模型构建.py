@@ -11,7 +11,6 @@ from sklearn.metrics import mean_squared_error
 # 数据和模型配置
 file_path = 'train_stock_data.xlsx'
 cleaned_file_path = 'train_cleaned_stock_data.csv'
-scaler_file_path = 'model/scaler.gz'
 model_file_path = "model/trained_model.h5"
 feature_scaler_file = 'model/feature_scaler.gz'
 target_scaler_file = 'model/target_scaler.gz'
@@ -40,9 +39,6 @@ scaled_data = scaler.fit_transform(df)
 
 # 保存归一化后的数据
 pd.DataFrame(scaled_data).to_csv(cleaned_file_path, index=False, header=False)
-
-# 保存MinMaxScaler对象
-joblib.dump(scaler, scaler_file_path)
 
 # 第二部分：模型训练
 # 加载清洗后的数据

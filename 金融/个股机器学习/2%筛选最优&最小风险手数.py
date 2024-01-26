@@ -21,7 +21,7 @@ num_portfolios = 999999
 results = np.zeros((3, num_portfolios))
 weights_record = []
 
-def calculate_test_hands(weights, closing_prices, budget=1000000, shares_per_hand=100):
+def calculate_test_hands(weights, closing_prices, budget=500000, shares_per_hand=100):
     """
     Calculate the number of hands to buy for each stock given a budget.
     """
@@ -80,7 +80,7 @@ selected_weights_sharpe_max /= selected_weights_sharpe_max.sum()
 selected_closing_prices_orp = closing_prices[indices_selected_stocks_orp]
 
 # Similar steps for MVP
-indices_selected_stocks_mvp = np.where(weights_std_min > 0.01)[0]
+indices_selected_stocks_mvp = np.where(weights_std_min > 0.02)[0]
 selected_weights_std_min = weights_std_min[indices_selected_stocks_mvp]
 selected_stock_names_codes_mvp = stock_names_codes[indices_selected_stocks_mvp]
 selected_weights_std_min /= selected_weights_std_min.sum()

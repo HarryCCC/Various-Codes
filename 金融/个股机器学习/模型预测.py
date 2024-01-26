@@ -7,7 +7,7 @@ import numpy as np
 1. 跳过前两行读取
 2. 读取前两列股票代码与股票名字信息
 3. 跳过前两列读取
-4. 筛选69-75每一列大于该列平均值
+4. 筛选xx-yy每一列大于该列平均值
 5. 删除零列
 6. 读取每一行的前40个数据（跳过零单元格）
 7. 翻转该前40列数据
@@ -17,14 +17,15 @@ import numpy as np
 predicted_data_path = 'predict_data.xlsx'
 df = pd.read_excel(predicted_data_path, header=None, skiprows=2)
 
-#筛风险回报和基本面
-#filter_col_indices = range(84, 90) 
-#只筛基本面
-filter_col_indices = range(87, 90)
-
+filter_col_indices1 = range(87, 89)  # 基本面-前60%
+filter_col_indices2 = range(84, 86)  # 风险收益-前60%
 # 计算每列的平均值并筛选出同时满足条件的行
-filter_conditions = [df[col] > df[col].mean() for col in filter_col_indices]
-df = df[np.logical_and.reduce(filter_conditions)]
+filter_conditions1 = [df[col] >= df[col].quantile(0.4) for col in filter_col_indices1]
+filter_conditions2 = [df[col] >= df[col].quantile(0.4) for col in filter_col_indices2]
+# 合并两个筛选条件
+combined_filter_conditions = filter_conditions1 + filter_conditions2
+# 应用筛选条件
+df = df[np.logical_and.reduce(combined_filter_conditions)]
 # 输出筛选后的行数
 print(f"筛选后的行数: {df.shape[0]}")
 
@@ -44,11 +45,11 @@ df = df.loc[:, (df != 0).any(axis=0)]
 df = df.apply(lambda row: row[::-1], axis=1)
 
 
-
 # 加载模型和归一化对象
 model = load_model('model/trained_model.h5')
 feature_scaler = joblib.load('model/feature_scaler.gz')
 target_scaler = joblib.load('model/target_scaler.gz')
+
 
 # 预测函数，重复进行预测并计算平均值
 def repeated_rolling_predictions(data, model, feature_scaler, target_scaler, time_step, days=14, repeats=3):

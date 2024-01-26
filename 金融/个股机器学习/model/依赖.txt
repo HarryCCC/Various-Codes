@@ -1,0 +1,1 @@
+pip install scikit-learn tensorflow-gpu==2.8.0 pandas numpy joblib matplotlib -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
