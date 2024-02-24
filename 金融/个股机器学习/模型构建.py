@@ -33,6 +33,9 @@ df = pd.read_excel(file_path, skiprows=2, header=None, usecols=lambda column: co
 # 删除全为0的列
 df = df.loc[:, (df != 0).any(axis=0)]
 
+# 反转数据顺序，使其从旧到新
+df = df.apply(lambda row: row[::-1], axis=1)
+
 # 数据预处理 - 归一化
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(df)
