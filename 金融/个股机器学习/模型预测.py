@@ -19,7 +19,7 @@ df = pd.read_excel(predicted_data_path, header=None, skiprows=2)
 
 filter_col_indices1 = range(87, 89)  # 基本面-前60%
 filter_col_indices2 = range(84, 86)  # 风险收益-前60%
-# 计算每列的平均值并筛选出同时满足条件的行
+# 筛选出同时满足条件的行
 filter_conditions1 = [df[col] >= df[col].quantile(0.4) for col in filter_col_indices1]
 filter_conditions2 = [df[col] >= df[col].quantile(0.4) for col in filter_col_indices2]
 # 合并两个筛选条件
