@@ -1,0 +1,67 @@
+
+# 逻辑回归
+# 决策树
+# 随机森林
+# 支持向量机
+# 朴素贝叶斯
+
+weights <- c(0.125, 0.25, 0.25, 0.25, 0.125) 
+Accuracy: 0.861930965482741 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1549   43
+     1  233  174
+
+个别测试：
+weights <- c(1, 0, 0, 0, 0) 
+Accuracy: 0.814407203601801 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1539   53
+     1  318   89
+
+weights <- c(0, 1, 0, 0, 0) 
+Accuracy: 0.855927963981991 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1517   75
+     1  213  194
+
+weights <- c(0, 0, 1, 0, 0)
+Accuracy: 0.865432716358179 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1531   61
+     1  208  199
+
+weights <- c(0, 0, 0, 1, 0)
+Accuracy: 0.858429214607304 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1530   62
+     1  221  186
+
+weights <- c(0, 0, 0, 0, 1)
+Accuracy: 0.83391695847924 
+Confusion Matrix:
+      y_pred_class
+y_test    0    1
+     0 1542   50
+     1  282  125
+
+
+
+
+
+
+
+
+
+
+
+
