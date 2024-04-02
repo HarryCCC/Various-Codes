@@ -1,0 +1,23 @@
+BSM平均绝对误差(MAE): 4.8145847856290205
+Neural SDE平均绝对误差(MAE): 2.3591109546310847
+Neural SDE模型的平均绝对误差(MAE)更小,拟合效果更佳。
+
+
+BSM均方误差(MSE): 50.81694336932885
+Neural SDE均方误差(MSE): 15.904566623434674
+Neural SDE模型的均方误差(MSE)更小,拟合效果更佳。
+
+
+BSM平均绝对百分比误差(MAPE): 24.186009565873157
+Neural SDE平均绝对百分比误差(MAPE): 7.260611924049842
+Neural SDE模型的平均绝对百分比误差(MAPE)更小,拟合效果更佳。
+
+
+BSM R平方: 0.946204234451934
+Neural SDE R平方: 0.9831631286636123
+Neural SDE模型的R平方更高,拟合效果更佳。
+
+有趣的观察结果：
+Neural SDE与BSM两个模型在比较预测结果接近真实情况的测试中，出现了明确的分水岭！
+在YearsToMaturity<0.01（或者说DaysToMaturity<3）的情况下，特别是当YearsToMaturity=0（行权期间）时，BSM的预测结果明显好于Neural SDE；
+而对于那些距离行权时日尚久的期权，与我们的整体测验结果一致，Neural SDE的表现大大优于BSM。
