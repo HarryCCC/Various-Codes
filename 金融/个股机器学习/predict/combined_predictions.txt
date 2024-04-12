@@ -1,0 +1,11 @@
+Top 100 stocks by combined prediction score:
+688150.SH: Prediction 0.34, Pattern 0.2492, Combined Score 75
+002347.SZ: Prediction 0.35, Pattern 0.2452, Combined Score 83
+300829.SZ: Prediction 0.33, Pattern 0.2464, Combined Score 130
+688722.SH: Prediction 0.33, Pattern 0.2420, Combined Score 152
+300026.SZ: Prediction 0.36, Pattern 0.0301, Combined Score 155
+000983.SZ: Prediction 0.36, Pattern 0.0296, Combined Score 165
+600884.SH: Prediction 0.32, Pattern 0.2452, Combined Score 166
+603077.SH: Prediction 0.33, Pattern 0.0708, Combined Score 167
+300723.SZ: Prediction 0.32, Pattern 0.2217, Combined Score 175
+600706.SH: Prediction 0.35, Pattern 0.0283, Combined Score 178

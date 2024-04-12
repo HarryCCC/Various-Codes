@@ -16,14 +16,14 @@ feature_scaler_file = 'model/feature_scaler.gz'
 target_scaler_file = 'model/target_scaler.gz'
 time_step = 40
 test_size = 0.1
-batch_size = 16
-epochs = 3
+batch_size = 32
+epochs = 5
 # 参数化LSTM和Dense层的units数
-lstm_units_1 = 90
+lstm_units_1 = 120
 lstm_units_2 = 60
 lstm_units_3 = 30
 dense_units_1 = 30
-dense_units_2 = 10
+dense_units_2 = 15
 output_units = 1
 
 # 第一部分：数据加载和预处理
@@ -86,7 +86,7 @@ model.add(Dense(output_units))
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 # 早停机制和模型保存
-early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+early_stopping = EarlyStopping(monitor='val_loss', patience=1)
 model_checkpoint = ModelCheckpoint(model_file_path, save_best_only=True)
 
 # 训练模型
