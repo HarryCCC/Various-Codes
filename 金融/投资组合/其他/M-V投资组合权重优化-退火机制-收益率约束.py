@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 # Hard-coded parameters
 asset_classes = np.array(["AE", "WE,U", "WE,H", "EM", "WLP", "ALP", "ADP", "COM", "GD", "HF", "PE", "AFI", "ILB", "WFI", "AC"])
@@ -58,36 +59,67 @@ cov_matrix = np.array([
 ])
 
 risk_free_rate = 0.0075  # (quarterly) 无风险利率(季度)
-num_portfolios = 999999
 
-# Simulate random portfolios
-results = np.zeros((3,num_portfolios))
+num_iterations = 10000
+num_portfolios_per_iteration = 300
+num_portfolios = num_iterations * num_portfolios_per_iteration
+initial_temp = 1.0
+cooling_rate = 0.9999
+min_required_return = (1.08 ** 0.25) - 1  # Minimum required return
+
+# Initialize results and weights storage
+results = np.zeros((3, num_iterations * num_portfolios_per_iteration))  # Stores [returns, std_dev, sharpe_ratio]
 weights_record = []
 
-for i in range(num_portfolios):
-    weights = np.random.random(len(asset_classes))
-    weights /= np.sum(weights)
-    weights_record.append(weights)
-    
-    portfolio_return = np.dot(weights, mean_returns)
-    portfolio_std = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-    sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_std
-    
-    results[0,i] = portfolio_return
-    results[1,i] = portfolio_std
-    results[2,i] = sharpe_ratio
-    
-# Find the portfolio with highest Sharpe ratio and minimum variance
-highest_sharpe_idx = results[2].argmax()
-min_variance_idx = results[1].argmin()
+current_weights = np.random.random(len(asset_classes))
+current_weights /= np.sum(current_weights)
 
-max_sharpe_return = results[0, highest_sharpe_idx]
-max_sharpe_std = results[1, highest_sharpe_idx] 
-max_sharpe_weights = weights_record[highest_sharpe_idx]
+for i in range(num_iterations):
+    temp = initial_temp * (cooling_rate ** i)
+    
+    for j in range(num_portfolios_per_iteration):
+        new_weights = np.abs(current_weights + np.random.normal(0, temp, size=len(asset_classes)))
+        new_weights /= np.sum(new_weights)
+        
+        portfolio_return = np.dot(new_weights, mean_returns)
+        portfolio_std = np.sqrt(np.dot(new_weights.T, np.dot(cov_matrix, new_weights)))
+        sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_std
 
-min_variance_return = results[0, min_variance_idx]
-min_variance_std = results[1, min_variance_idx]
-min_variance_weights = weights_record[min_variance_idx]
+        index = i * num_portfolios_per_iteration + j
+        results[0, index] = portfolio_return
+        results[1, index] = portfolio_std
+        results[2, index] = sharpe_ratio
+        weights_record.append(new_weights)
+
+        # Update current weights if the new portfolio has a better Sharpe ratio
+        if index == 0 or sharpe_ratio > np.max(results[2, :index]):
+            current_weights = new_weights
+
+    # Output progress periodically
+    if (i + 1) % 100 == 0:
+        print(f"Progress: {(i + 1) / num_iterations * 100 :.2f}%")
+
+# Identify portfolios meeting the minimum required return
+valid_indices = [idx for idx, ret in enumerate(results[0]) if ret >= min_required_return]
+filtered_results = results[:, valid_indices]
+filtered_weights = [weights_record[idx] for idx in valid_indices]
+
+# Identify portfolios with highest Sharpe ratio and minimum variance among filtered results
+if len(filtered_results[0]) > 0:  # Ensure there are valid portfolios
+    highest_sharpe_idx = np.argmax(filtered_results[2])
+    min_variance_idx = np.argmin(filtered_results[1])
+
+    max_sharpe_return = filtered_results[0, highest_sharpe_idx]
+    max_sharpe_std = filtered_results[1, highest_sharpe_idx]
+    max_sharpe_weights = filtered_weights[highest_sharpe_idx]
+
+    min_variance_return = filtered_results[0, min_variance_idx]
+    min_variance_std = filtered_results[1, min_variance_idx]
+    min_variance_weights = filtered_weights[min_variance_idx]
+else:
+    print("No portfolios meet the minimum required return.")
+    max_sharpe_return = max_sharpe_std = max_sharpe_weights = None
+    min_variance_return = min_variance_std = min_variance_weights = None
 
 # Print optimal portfolio information
 print("Optimal Sharpe Portfolio")
@@ -114,6 +146,8 @@ plt.scatter(max_sharpe_std*100, max_sharpe_return*100, marker=(5,1,0), color='r'
 plt.scatter(min_variance_std*100, min_variance_return*100, marker=(5,1,0), color='m', s=100, label='Minimum variance')
 plt.plot([0, max_sharpe_std*100], [risk_free_rate*100, max_sharpe_return*100], linestyle='--', color='black', label='Capital Allocation Line (CAL)')  
 plt.title('Efficient Frontier')
+# Draw horizontal line for minimum required return
+plt.axhline(y=min_required_return * 100, color='y', linestyle='--', label='Minimum Required Return')
 plt.legend(labelspacing=0.8)
 # 自适应调整x轴和y轴范围
 std_min, std_max = np.min(results[1]*100), np.max(results[1]*100)
@@ -125,4 +159,49 @@ plt.xlim(std_min - margin_x, std_max + margin_x)
 margin_y = (ret_max - ret_min) * 0.1
 plt.ylim(ret_min - margin_y, ret_max + margin_y)
 plt.grid(True)
+
+
+# 获取当前脚本所在路径
+script_path = os.path.dirname(os.path.abspath(__file__))
+
+def unique_filename(directory, base_name, extension):
+    """Generate a unique file name in the given directory."""
+    counter = 1
+    while True:
+        if counter == 1:
+            new_name = f"{base_name}.{extension}"
+        else:
+            new_name = f"{base_name}({counter}).{extension}"
+        full_path = os.path.join(directory, new_name)
+        if not os.path.exists(full_path):
+            return full_path
+        counter += 1
+
+# Calculate the desired name part
+million_portfolios = (num_iterations * num_portfolios_per_iteration) / 1000000
+# Generate unique filenames
+weights_file = unique_filename(script_path, f"{million_portfolios:.2f}mil_Anneal_portfolio_weights", 'txt')
+frontier_image = unique_filename(script_path, f"{million_portfolios:.2f}mil_{cooling_rate}Anneal_efficient_frontier", 'png')
+
+# Save weights to a text file
+with open(weights_file, 'w') as f:
+    f.write("Optimal Sharpe Portfolio\n")
+    f.write(f"Quarterly Return: {max_sharpe_return:.2%}\n")
+    f.write(f"Quarterly Volatility: {max_sharpe_std:.2%}\n")
+    f.write("Weights:\n")
+    for asset, weight in zip(asset_classes, max_sharpe_weights):
+        f.write(f"{asset}: {weight:.4%}\n")
+
+    f.write("\nMinimum Variance Portfolio\n")
+    f.write(f"Quarterly Return: {min_variance_return:.2%}\n")
+    f.write(f"Quarterly Volatility: {min_variance_std:.2%}\n")
+    f.write("Weights:\n")
+    for asset, weight in zip(asset_classes, min_variance_weights):
+        f.write(f"{asset}: {weight:.4%}\n")
+
+# 保存图像到文件
+plt.savefig(frontier_image)
+
 plt.show()
+
+

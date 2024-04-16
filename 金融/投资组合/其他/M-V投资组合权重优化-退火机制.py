@@ -144,7 +144,6 @@ plt.xlim(std_min - margin_x, std_max + margin_x)
 margin_y = (ret_max - ret_min) * 0.1
 plt.ylim(ret_min - margin_y, ret_max + margin_y)
 plt.grid(True)
-plt.show()
 
 
 # 获取当前脚本所在路径
@@ -168,3 +167,5 @@ with open(os.path.join(script_path, 'portfolio_weights.txt'), 'w') as f:
     f.write("Weights:\n") 
     for i in range(len(asset_classes)):
         f.write(" {}: {:.4%}\n".format(asset_classes[i], min_variance_weights[i]))
+
+plt.show()
