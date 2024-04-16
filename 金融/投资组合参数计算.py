@@ -5,22 +5,22 @@ from scipy.stats import norm
 
 # The weight of each asset 每种资产的权重
 weights = np.array([
-    0.33,  # Australian Equities (AE)
-    0.00,  # World Equities, Unhedged (WE,U)
-    0.00,  # World Equities, Hedged (WE,H)
+    0.27,  # Australian Equities (AE)
+    0.10,  # World Equities, Unhedged (WE,U)
+    0.09,  # World Equities, Hedged (WE,H)
     0.03,  # Emerging Markets (EM)
 
     0.00,  # World Listed Property (WLP)
-    0.30,  # Australian Listed Property (ALP)
-    0.00,  # Australian Direct Property (ADP)
+    0.05,  # Australian Listed Property (ALP)
+    0.05,  # Australian Direct Property (ADP)
     0.00,  # Commodities (CCFs) (COM)
     0.00,  # Gold (CCFs) (GD)
-    0.00,  # Hedge Funds (HF)
-    0.10,  # US Private Equity (PE)
+    0.05,  # Hedge Funds (HF)
+    0.15,  # US Private Equity (PE)
 
-    0.17,  # Australian Fixed Income (AFI)
-    0.00,  # Australian Index-Linked Bonds (ILB)
-    0.00,  # World Fixed Income (Hedged) (WFI)
+    0.09,  # Australian Fixed Income (AFI)
+    0.03,  # Australian Index-Linked Bonds (ILB)
+    0.02,  # World Fixed Income (Hedged) (WFI)
     0.07,  # Australian Cash (AC)
     0.00   # US$ per A$1 (AU$/US$)
 ])
@@ -148,17 +148,33 @@ compound_return = ((1 + portfolio_return)**time_horizon)**(4/time_horizon) - 1
 sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_stdev
 
 # 3. Sotino ratio (quarterly) 索提诺比率（季度）
-def downside_risk(returns, target=0):
-    downside_returns = returns[returns < target]
-    return np.sqrt(np.sum(downside_returns**2) / len(returns))
+def downside_risk(weights, mean_returns, target, cov_matrix):
+    # 计算每个资产的下行偏差
+    downside_deviation = mean_returns - target
+    downside_deviation[downside_deviation > 0] = 0  # 只保留负的偏差
+    # 使用下行偏差和协方差矩阵计算整个投资组合的下行风险
+    weighted_downside_var = np.dot(weights, np.dot(cov_matrix * np.outer(downside_deviation, downside_deviation), weights.T))
+    return np.sqrt(weighted_downside_var)
 
-sortino_ratio = (portfolio_return - risk_free_rate) / downside_risk(mean_returns, risk_free_rate)
+def sortino_ratio(weights, mean_returns, target, risk_free_rate, cov_matrix):
+    portfolio_return = np.dot(weights, mean_returns)
+    excess_return = portfolio_return - risk_free_rate
+    downside_risk_value = downside_risk(weights, mean_returns, target, cov_matrix)
+    
+    if downside_risk_value == 0:  # 避免除以零
+        return float('inf')
+    return excess_return / downside_risk_value
+
+sortino = sortino_ratio(weights, mean_returns, target_return, risk_free_rate, cov_matrix)
 
 # 4. Annualized standard deviation of portfolio value (%) (annual) 投资组合价值的年化标准差(%)（年度）
 portfolio_stdev_pa = portfolio_stdev * np.sqrt(4) * 100  # 一年4个季度
 
-# 5. Annualized half standard deviation (annual) 年化半标准差（年度）
-semi_deviation = downside_risk(mean_returns) * np.sqrt(4) * 100 
+# 5. Annualized half standard deviation (quarterly) 半标准差（季度）
+def semi_deviation(weights, mean_returns, target, cov_matrix):
+    return downside_risk(weights, mean_returns, target, cov_matrix)
+
+semi_dev = semi_deviation(weights, mean_returns, target_return, cov_matrix)*100
 
 # 6. Annualized tracking error relative to the baseline (%) (annual) 相对基准的年化跟踪误差(%) （年度）
 benchmark_return = 0.0206   # Benchmark return (quarterly) 基准回报率（季度）
@@ -179,9 +195,9 @@ prob_under_target = norm.cdf((target_return - portfolio_return) / portfolio_stde
 # Print result 打印结果
 print(f"Compound Return (p.a.): {compound_return:.4f}")
 print(f"Sharpe Ratio: {sharpe_ratio:.4f}") 
-print(f"Sortino Ratio: {sortino_ratio:.4f}")
+print(f"Sortino Ratio: {sortino:.4f}")
 print(f"Std Dev (Portfolio Value), % pa: {portfolio_stdev_pa:.4f}") 
-print(f"Semi-Deviation, % pa: {semi_deviation:.4f}")
+print(f"Semi-Deviation, % pa: {semi_dev:.4f}")
 print(f"Tracking Error vs Benchmark, % pa: {tracking_error:.4f}")
 print(f"Probability of Loss over {time_horizon} Quarters: {prob_loss:.4f}")
 print(f"Conditional Value at Risk (CVaR) or Expected Shortfall at 95% confidence, % pa: {cvar_95:.4f}")
