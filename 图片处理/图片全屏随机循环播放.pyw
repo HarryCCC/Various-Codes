@@ -26,7 +26,8 @@ def resize_image(img, max_width, max_height):
     return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
 def on_key(event):
-    root.destroy()  # 按任意键退出程序
+    if event.keysym == 'Escape':  # 检查是否是Esc键
+        root.destroy()  # 按Esc键退出程序
 
 def on_click(event):
     update_image()  # 鼠标点击立即更换图片
