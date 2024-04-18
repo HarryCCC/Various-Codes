@@ -33,7 +33,7 @@ def blur_current_directory_image(blur_level=5):
     
     # 生成输出文件名
     base_name, ext = os.path.splitext(input_filename)
-    output_filename = f"{base_name}_blur{ext}"
+    output_filename = f"{base_name}_{blur_level}blur{ext}"
     output_path = os.path.join(current_path, output_filename)
 
     # 读取图像
@@ -46,5 +46,6 @@ def blur_current_directory_image(blur_level=5):
     cv2.imwrite(output_path, blurred)
     print(f"已生成虚化图片: {output_filename}")
 
+blur_level=50
 # 使用示例
-blur_current_directory_image(blur_level=100)
+blur_current_directory_image(blur_level)
