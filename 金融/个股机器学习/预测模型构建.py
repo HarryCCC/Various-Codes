@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
@@ -17,14 +17,17 @@ target_scaler_file = 'model/target_scaler.gz'
 time_step = 40
 test_size = 0.1
 batch_size = 32
-epochs = 5
+epochs = 10
+
 # 参数化LSTM和Dense层的units数
-lstm_units_1 = 120
-lstm_units_2 = 60
-lstm_units_3 = 30
-dense_units_1 = 30
-dense_units_2 = 15
-output_units = 1
+lstm_units_1 = 256
+lstm_units_2 = 128
+lstm_units_3 = 64
+lstm_units_4 = 32
+dense_units_1 = 32
+dense_units_2 = 16
+dense_units_3 = 8
+dense_units_4 = 1
 
 # 第一部分：数据加载和预处理
 # 加载数据，跳过前2行和前2列，并忽略列名
@@ -77,11 +80,19 @@ X_test = X_test.reshape((X_test.shape[0], time_step, 1))
 # 构建模型
 model = Sequential()
 model.add(LSTM(lstm_units_1, return_sequences=True, input_shape=(time_step, 1)))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
 model.add(LSTM(lstm_units_2, return_sequences=True))
-model.add(LSTM(lstm_units_3, return_sequences=False))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
+model.add(LSTM(lstm_units_3, return_sequences=True))
+model.add(BatchNormalization())
+model.add(Dropout(0.2))
+model.add(LSTM(lstm_units_4, return_sequences=False))
 model.add(Dense(dense_units_1))
 model.add(Dense(dense_units_2))
-model.add(Dense(output_units))
+model.add(Dense(dense_units_3))
+model.add(Dense(dense_units_4))
 
 model.compile(optimizer='adam', loss='mean_squared_error')
 
