@@ -142,9 +142,10 @@ sorted_scores = sorted(combined_scores.items(), key=lambda x: x[1])
 
 with open('predict/combined_predictions.txt', 'w') as file:
     file.write("Top stocks by combined prediction score: \n ")
+    file.write("\n")
     # 先输出所有的code
     for code, _ in sorted_scores[:10]:
-        file.write(f"{code}\n")
+        file.write(f"{code} {name} \n")
     file.write("\n")
     file.write("用中文，综合地从技术面（走势分析）与消息面的角度，分别预测这几支A股在下一周的走势 \n")
     file.write("\n")  # 在code和scores之间添加一个空行以便区分
