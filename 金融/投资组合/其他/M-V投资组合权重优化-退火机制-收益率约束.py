@@ -61,11 +61,11 @@ cov_matrix = np.array([
 risk_free_rate = 0.0075  # (quarterly) 无风险利率(季度)
 
 num_iterations = 10000
-num_portfolios_per_iteration = 300
+num_portfolios_per_iteration = 100
 num_portfolios = num_iterations * num_portfolios_per_iteration
 initial_temp = 1.0
 cooling_rate = 0.9999
-min_required_return = (1.08 ** 0.25) - 1  # Minimum required return
+min_required_return = (1.08 ** 0.25) - 1   # Minimum required return
 
 # Initialize results and weights storage
 results = np.zeros((3, num_iterations * num_portfolios_per_iteration))  # Stores [returns, std_dev, sharpe_ratio]
@@ -180,8 +180,8 @@ def unique_filename(directory, base_name, extension):
 # Calculate the desired name part
 million_portfolios = (num_iterations * num_portfolios_per_iteration) / 1000000
 # Generate unique filenames
-weights_file = unique_filename(script_path, f"{million_portfolios:.2f}mil_Anneal_portfolio_weights", 'txt')
-frontier_image = unique_filename(script_path, f"{million_portfolios:.2f}mil_{cooling_rate}Anneal_efficient_frontier", 'png')
+weights_file = unique_filename(script_path, f"{million_portfolios:.2f}mil_{min_required_return}Return_{cooling_rate}_Anneal_portfolio_weights", 'txt')
+frontier_image = unique_filename(script_path, f"{million_portfolios:.2f}mil_{min_required_return}Return_{cooling_rate}Anneal_efficient_frontier", 'png')
 
 # Save weights to a text file
 with open(weights_file, 'w') as f:

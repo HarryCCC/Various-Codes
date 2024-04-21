@@ -161,8 +161,8 @@ def unique_filename(directory, base_name, extension):
 # Calculate the desired name part
 million_portfolios = (num_portfolios) / 1000000
 # Generate unique filenames
-weights_file = unique_filename(script_path, f"{million_portfolios:.2f}mil_Random_portfolio_weights", 'txt')
-frontier_image = unique_filename(script_path, f"{million_portfolios:.2f}mil_Random_efficient_frontier", 'png')
+weights_file = unique_filename(script_path, f"{million_portfolios:.2f}mil_{min_required_return}Return_Random_portfolio_weights", 'txt')
+frontier_image = unique_filename(script_path, f"{million_portfolios:.2f}mil_{min_required_return}Return_Random_efficient_frontier", 'png')
 
 # Saving portfolio weights to a text file
 with open(weights_file, 'w') as file:

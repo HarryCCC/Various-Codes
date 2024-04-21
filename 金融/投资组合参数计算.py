@@ -5,23 +5,22 @@ from scipy.stats import norm
 
 # The weight of each asset 每种资产的权重
 weights = np.array([
-    0.27,  # Australian Equities (AE)
-    0.10,  # World Equities, Unhedged (WE,U)
-    0.09,  # World Equities, Hedged (WE,H)
-    0.03,  # Emerging Markets (EM)
+0.12,
+0.06,
+0.17,
+0.03,
+0.01,
+0.04,
+0.08,
+0.08,
+0.03,
+0.03,
+0.05,
+0.07,
+0.1,
+0.06,
+0.07,
 
-    0.00,  # World Listed Property (WLP)
-    0.05,  # Australian Listed Property (ALP)
-    0.05,  # Australian Direct Property (ADP)
-    0.00,  # Commodities (CCFs) (COM)
-    0.00,  # Gold (CCFs) (GD)
-    0.05,  # Hedge Funds (HF)
-    0.15,  # US Private Equity (PE)
-
-    0.09,  # Australian Fixed Income (AFI)
-    0.03,  # Australian Index-Linked Bonds (ILB)
-    0.02,  # World Fixed Income (Hedged) (WFI)
-    0.07,  # Australian Cash (AC)
     0.00   # US$ per A$1 (AU$/US$)
 ])
 
@@ -129,25 +128,33 @@ def calculate_target_quarterly_return(annual_cash_outflow_rate, annual_real_retu
     return target_quarterly_return
 # Given condition 给定条件
 annual_cash_outflow_rate = 0.05
-annual_real_return_rate = 0.03 + 0.03 # adjusted by inflation
+annual_real_return_rate = 0.03 # not adjusted by inflation 3%+3%
 # Calculate target quarterly returns 计算目标季度回报率
 target_return = calculate_target_quarterly_return(annual_cash_outflow_rate, annual_real_return_rate)
 # target_return = 0.019780  # (quarterly) 目标回报率（季度）
-
 
 # Calculate the expected return and standard deviation of the portfolio (quarterly) 计算投资组合的期望回报率和标准差 （季度）
 portfolio_return = np.sum(weights * mean_returns)
 portfolio_stdev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
 
-# Calculate the parameters of the portfolio 计算投资组合的各项参数
-# 1. Compound annual return 复合年化回报率（年度）
-compound_return = ((1 + portfolio_return)**time_horizon)**(4/time_horizon) - 1
+# 计算三年目标回报率
+def calculate_target_triennial_return(annual_cash_outflow_rate, annual_real_return_rate):
+    triennial_cash_outflow_rate = (1 + annual_cash_outflow_rate) ** (1/4*12) - 1
+    triennial_real_return_rate = (1 + annual_real_return_rate) ** (1/4*12) - 1
+    target_triennial_return = (1 + triennial_cash_outflow_rate) * (1 + triennial_real_return_rate) - 1
+    return target_triennial_return
 
-# 2. Sharpe ratio (quarterly) 夏普比率（季度）
-sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_stdev
+target_return_triennial = calculate_target_triennial_return(annual_cash_outflow_rate, annual_real_return_rate)
 
-# 3. Sotino ratio (quarterly) 索提诺比率（季度）
+# 1. 计算三年复合回报率
+compound_return_triennial = (1 + portfolio_return)**12 - 1  # 12 quarters in 3 years
+
+# 2. 计算三年夏普比率
+sharpe_ratio_triennial = (compound_return_triennial - (1 + risk_free_rate)**12 + 1) / (portfolio_stdev * np.sqrt(12))
+
+# 3. 计算三年索提诺比率
+risk_free_rate_triennial = (1 + risk_free_rate)**12 - 1 # 计算三年无风险回报率
 def downside_risk(weights, mean_returns, target, cov_matrix):
     # 计算每个资产的下行偏差
     downside_deviation = mean_returns - target
@@ -155,50 +162,46 @@ def downside_risk(weights, mean_returns, target, cov_matrix):
     # 使用下行偏差和协方差矩阵计算整个投资组合的下行风险
     weighted_downside_var = np.dot(weights, np.dot(cov_matrix * np.outer(downside_deviation, downside_deviation), weights.T))
     return np.sqrt(weighted_downside_var)
-
-def sortino_ratio(weights, mean_returns, target, risk_free_rate, cov_matrix):
-    portfolio_return = np.dot(weights, mean_returns)
-    excess_return = portfolio_return - risk_free_rate
-    downside_risk_value = downside_risk(weights, mean_returns, target, cov_matrix)
+def semi_deviation_triennial(weights, mean_returns, target, cov_matrix):
+    return downside_risk(weights, mean_returns, target, cov_matrix) * np.sqrt(12)
+def sortino_ratio_triennial(weights, mean_returns, target_triennial, risk_free_rate_triennial, cov_matrix):
+    # 计算投资组合三年的总回报
+    portfolio_return_triennial = np.dot(weights, mean_returns) * 12  # 12季度总回报
+    # 计算超额回报
+    excess_return_triennial = portfolio_return_triennial - risk_free_rate_triennial
+    # 计算三年下行风险
+    downside_risk_triennial = semi_deviation_triennial(weights, mean_returns, target_triennial, cov_matrix)
     
-    if downside_risk_value == 0:  # 避免除以零
+    if downside_risk_triennial == 0:  # 避免除以零
         return float('inf')
-    return excess_return / downside_risk_value
+    return excess_return_triennial / downside_risk_triennial
 
-sortino = sortino_ratio(weights, mean_returns, target_return, risk_free_rate, cov_matrix)
+sortino_triennial = sortino_ratio_triennial(weights, mean_returns, target_return_triennial, risk_free_rate_triennial, cov_matrix)
 
-# 4. Annualized standard deviation of portfolio value (%) (annual) 投资组合价值的年化标准差(%)（年度）
-portfolio_stdev_pa = portfolio_stdev * np.sqrt(4) * 100  # 一年4个季度
+# 4. 三年标准差计算
+portfolio_stdev_triennial = portfolio_stdev * np.sqrt(12)
 
-# 5. Annualized half standard deviation (quarterly) 半标准差（季度）
-def semi_deviation(weights, mean_returns, target, cov_matrix):
-    return downside_risk(weights, mean_returns, target, cov_matrix)
+# 5. 三年半标准差计算
+semi_dev_triennial = semi_deviation_triennial(weights, mean_returns, target_return_triennial, cov_matrix)
 
-semi_dev = semi_deviation(weights, mean_returns, target_return, cov_matrix)*100
+# 6. 计算三年期间损失概率
+prob_loss_triennial = norm.cdf(-compound_return_triennial / (portfolio_stdev * np.sqrt(12)))
 
-# 6. Annualized tracking error relative to the baseline (%) (annual) 相对基准的年化跟踪误差(%) （年度）
-benchmark_return = 0.0206   # Benchmark return (quarterly) 基准回报率（季度）
-tracking_error = np.sqrt(np.sum((mean_returns - benchmark_return)**2 * weights)) * np.sqrt(4) * 100
-
-# 7. Probability of loss over a 3-year period 3年期间损失概率
-prob_loss = norm.cdf( -portfolio_return * time_horizon / (portfolio_stdev * np.sqrt(time_horizon)))
-
-# 8. Conditional value at Risk (CVaR) or expected deficit (quarterly) 条件在险价值(CVaR)或期望亏空（季度）
+# 7. 计算三年条件在险价值(CVaR)或期望亏空
 conf_level = 0.95   # Assumed confidence 假设置信度
-var_95 = norm.ppf(1-conf_level, portfolio_return, portfolio_stdev)
-cvar_95 = (portfolio_return - var_95) / (1 - conf_level) - portfolio_return
+cvar_triennial = norm.ppf(1 - conf_level, compound_return_triennial, portfolio_stdev * np.sqrt(12))
+cvar_triennial = (compound_return_triennial - cvar_triennial) / (1 - conf_level) - compound_return_triennial
 
-# 9. Probability of missing target Return (quarterly) 未达目标回报率概率（季度）
-prob_under_target = norm.cdf((target_return - portfolio_return) / portfolio_stdev)
+# 8. 计算三年未达目标回报率概率
+prob_under_target_triennial = norm.cdf((target_return_triennial - compound_return_triennial) / (portfolio_stdev * np.sqrt(12)))
 
-
-# Print result 打印结果
-print(f"Compound Return (p.a.): {compound_return:.4f}")
-print(f"Sharpe Ratio: {sharpe_ratio:.4f}") 
-print(f"Sortino Ratio: {sortino:.4f}")
-print(f"Std Dev (Portfolio Value), % pa: {portfolio_stdev_pa:.4f}") 
-print(f"Semi-Deviation, % pa: {semi_dev:.4f}")
-print(f"Tracking Error vs Benchmark, % pa: {tracking_error:.4f}")
-print(f"Probability of Loss over {time_horizon} Quarters: {prob_loss:.4f}")
-print(f"Conditional Value at Risk (CVaR) or Expected Shortfall at 95% confidence, % pa: {cvar_95:.4f}")
-print(f"Probability of Not Meeting Return Target: {prob_under_target:.4f}")
+# 打印所有三年期计算结果
+print(" ")
+print(f"Triennial Compound Return: {compound_return_triennial:.4f}")
+print(f"Triennial Sharpe Ratio: {sharpe_ratio_triennial:.4f}")
+print(f"Triennial Sortino Ratio: {sortino_triennial:.4f}")
+print(f"Portfolio Standard Deviation over 3 Years: {portfolio_stdev_triennial:.4f}")
+print(f"Portfolio Semi-Deviation over 3 Years: {semi_dev_triennial:.4f}")
+print(f"Conditional Value at Risk (CVaR), Triennial: {cvar_triennial:.4f}{'%'}")
+print(f"Probability of Not Meeting Triennial Return Target: {100*prob_under_target_triennial:.4f}{'%'}")
+print(f"Probability of Loss over 3 Years: {100*prob_loss_triennial:.4f}{'%'}")

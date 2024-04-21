@@ -3,7 +3,7 @@ import numpy as np
 
 # 读取Excel文件
 file_path = 'FINM3008 - Assignment Analysis S1 2024.xlsx'
-sheet_name = 'Beta Exposure Analysis-Reweight'
+sheet_name = 'Beta Exposure Analysis'
 df = pd.read_excel(file_path, sheet_name=sheet_name, header=0)
 
 # 提取市场指数收益率和各类资产收益率

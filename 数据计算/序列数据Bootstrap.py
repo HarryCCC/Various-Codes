@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 
 # 读取整个Excel文件
-df = pd.read_excel('FINM3008 - Assignment Data Analysis S1 2024.xlsx', sheet_name='Yearly Returns', index_col=0)
+df = pd.read_excel('FINM3008 - Assignment Data Analysis S1 2024.xlsx', sheet_name='Qtr Returns', index_col=0)
 
 # 获取资产类别名称
 asset_classes = df.iloc[0].tolist()
 
-# 删除前两行
-df = df.iloc[2:]
+# 删除前1行
+df = df.iloc[1:]
 
 # 设置bootstrap参数
 n_boot = 1000
