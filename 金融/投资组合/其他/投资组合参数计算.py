@@ -5,67 +5,48 @@ from scipy.stats import norm
 
 # The weight of each asset 每种资产的权重
 weights = np.array([
-0.12,
-0.06,
-0.17,
+0.1064,
+0.0786,
+0.131,
+0.0862,
+0.0145,
+0.0558,
+0.0939,
+0.0505,
 0.03,
-0.01,
-0.04,
-0.08,
-0.08,
-0.03,
-0.03,
-0.05,
-0.07,
-0.1,
-0.06,
-0.07,
+0.0352,
+0.1171,
+0.0487,
+0.0241,
+0.0561,
+0.072,
+
+
+
+
 
     0.00   # US$ per A$1 (AU$/US$)
 ])
 
 # The average return on each asset 每种资产的均值回报率
 raw_mean_returns = np.array([
-    0.025837,  # Australian Equities (AE)
-    0.025088,  # World Equities, Unhedged (WE,U)
-    0.026602,  # World Equities, Hedged (WE,H)
-    0.022344,  # Emerging Markets (EM)
+0.0206043958361059,	
+0.0206043958361059,	
+0.0206043958361059,	
+0.0229479345610986,	
+0.0124898185173038,	
+0.0194265469082734,	
+0.0170585250018113,	
+0.0122722344290393,	
+0.00741707177773288,	
+0.0146738461686593,	
+0.021778180864641,	
+0.00912435777166594,	
+0.00863744599771343,	
+0.00912435777166602,	
+0.00741707177773286,	
 
-    0.012490,  # World Listed Property (WLP)
-    0.023816,  # Australian Listed Property (ALP)
-    0.022882,  # Australian Direct Property (ADP)
-    0.011773,  # Commodities (CCFs) (COM)
-    0.009653,  # Gold (CCFs) (GD)
-    0.019426,  # Hedge Funds (HF)
-    0.018764,  # US Private Equity (PE)
-
-    0.018728,  # Australian Fixed Income (AFI)
-    0.015875,  # Australian Index-Linked Bonds (ILB)
-    0.020283,  # World Fixed Income (Hedged) (WFI)
-    0.016815,  # Australian Cash (AC)
     -0.002740  # US$ per A$1 (AU$/US$)
-])
-
-# Standard deviation per asset (useless) 每种资产标准差（无用）
-stdevs = np.array([
-    0.088613,  # Australian Equities (AE)
-    0.076969,  # World Equities, Unhedged (WE,U)
-    0.081033,  # World Equities, Hedged (WE,H)
-    0.099292,  # Emerging Markets (EM)
-
-    0.077307,  # World Listed Property (WLP)
-    0.086750,  # Australian Listed Property (ALP)
-    0.033320,  # Australian Direct Property (ADP)
-    0.110537,  # Commodities (CCFs) (COM)
-    0.078148,  # Gold (CCFs) (GD)
-    0.047545,  # Hedge Funds (HF)
-    0.051247,  # US Private Equity (PE)
-
-    0.024822,  # Australian Fixed Income (AFI)
-    0.029212,  # Australian Index-Linked Bonds (ILB)
-    0.023476,  # World Fixed Income (Hedged) (WFI)
-    0.011498,  # Australian Cash (AC)
-    0.055879   # US$ per A$1 (AU$/US$)
 ])
 
 # covariance matrix 协方差矩阵
@@ -90,7 +71,7 @@ cov_matrix = np.array([
 
 
 # Management fees for each asset (annual)
-management_fees_annual = np.array([
+management_fees_3year = np.array([
     0.0016,  # Australian Equities (AE)
     0.0018,  # World Equities, Unhedged (WE,U)
     0.0018,  # World Equities, Hedged (WE,H)
@@ -111,7 +92,7 @@ management_fees_annual = np.array([
     0.0000   # US$ per A$1 (AU$/US$)
 ])
 # Convert annual fees to quarterly
-fees = (1 + management_fees_annual)**(1/4) - 1
+fees = (1 + management_fees_3year)**(1/12) - 1
 mean_returns = raw_mean_returns - fees
 
 
