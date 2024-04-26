@@ -5,23 +5,23 @@ import os
 # Hard-coded parameters
 asset_classes = np.array(["AE", "WE,U", "WE,H", "EM", "WLP", "ALP", "ADP", "COM", "GD", "HF", "PE", "AFI", "ILB", "WFI", "AC"])
 raw_mean_returns = np.array([
-0.0206043958361059,	
-0.0206043958361059,	
-0.0206043958361059,	
-0.0229479345610986,	
-0.0124898185173038,	
-0.0194265469082734,	
-0.0170585250018113,	
-0.0122722344290393,	
-0.00741707177773288,	
-0.0146738461686593,	
-0.021778180864641,	
-0.00912435777166594,	
-0.00863744599771343,	
-0.00912435777166602,	
-0.00741707177773286,	
+    0.025837,  # Australian Equities (AE)
+    0.025088,  # World Equities, Unhedged (WE,U)
+    0.026602,  # World Equities, Hedged (WE,H)
+    0.022344,  # Emerging Markets (EM)
+    0.012490,  # World Listed Property (WLP)
+    0.023816,  # Australian Listed Property (ALP)
+    0.022882,  # Australian Direct Property (ADP)
+    0.011773,  # Commodities (CCFs) (COM)
+    0.009653,  # Gold (CCFs) (GD)
+    0.019426,  # Hedge Funds (HF)
+    0.018764,  # US Private Equity (PE)
+    0.018728,  # Australian Fixed Income (AFI) 
+    0.015875,  # Australian Index-Linked Bonds (ILB)
+    0.020283,  # World Fixed Income (Hedged) (WFI)
+    0.016815,  # Australian Cash (AC)
 ])
-management_fees_3year = np.array([
+management_fees_annual = np.array([
     0.0016,  # Australian Equities (AE)
     0.0018,  # World Equities, Unhedged (WE,U)  
     0.0018,  # World Equities, Hedged (WE,H)
@@ -38,7 +38,7 @@ management_fees_3year = np.array([
     0.0025,  # World Fixed Income (Hedged) (WFI)
     0.0015,  # Australian Cash (AC)
 ])
-fees = (1 + management_fees_3year)**(1/12) - 1
+fees = (1 + management_fees_annual)**(1/4) - 1
 mean_returns = raw_mean_returns - fees
 cov_matrix = np.array([
     [0.00785218, 0.00369831, 0.00424846, 0.00439983, 0.00381151, 0.00510416, -0.00009768, 0.00122809, -0.00107017, -0.00056915, 0.00222603, 0.00004924, 0.00018005, 0.00000507, 0.00003397],
@@ -61,11 +61,11 @@ cov_matrix = np.array([
 risk_free_rate = 0.0075  # (quarterly) 无风险利率(季度)
 
 num_iterations = 10000
-num_portfolios_per_iteration = 300
+num_portfolios_per_iteration = 100
 num_portfolios = num_iterations * num_portfolios_per_iteration
 initial_temp = 1.0
 cooling_rate = 0.9999
-min_required_return = 0.019   # Minimum required return
+min_required_return = (1.08 ** 0.25) - 1   # Minimum required return
 
 # Initialize results and weights storage
 results = np.zeros((3, num_iterations * num_portfolios_per_iteration))  # Stores [returns, std_dev, sharpe_ratio]
