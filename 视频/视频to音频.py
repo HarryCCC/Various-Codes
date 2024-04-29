@@ -16,4 +16,4 @@ def convert_mp4_to_mp3_ffmpeg(video_path, audio_path):
     )
 
 # 使用函数
-convert_mp4_to_mp3_ffmpeg("video.mp4", "sound.mp3")
+convert_mp4_to_mp3_ffmpeg("video.mp4", "voice.mp3")
