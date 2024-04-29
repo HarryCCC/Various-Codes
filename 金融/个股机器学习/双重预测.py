@@ -1,5 +1,5 @@
 import pandas as pd
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 import joblib
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
@@ -37,7 +37,7 @@ df_predict = df_predict.loc[:, (df_predict != 0).any(axis=0)]
 df_predict = df_predict.apply(lambda row: row[::-1], axis=1)
 
 # 加载模型和归一化对象
-model = load_model('model/trained_model.h5') 
+model = tf.keras.models.load_model('model/trained_model.h5') 
 feature_scaler = joblib.load('model/feature_scaler.gz')
 target_scaler = joblib.load('model/target_scaler.gz')
 
