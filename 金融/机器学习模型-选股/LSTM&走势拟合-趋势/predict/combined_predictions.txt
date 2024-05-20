@@ -1,0 +1,25 @@
+Top stocks by combined prediction score: 
+ 
+000886.SZ 九号公司 
+600389.SH 九号公司 
+002766.SZ 九号公司 
+002902.SZ 九号公司 
+600686.SH 九号公司 
+603766.SH 九号公司 
+600540.SH 九号公司 
+605183.SH 九号公司 
+600506.SH 九号公司 
+300140.SZ 九号公司 
+
+用中文，综合地从技术面（走势分析）与消息面的角度，分别预测这几支A股在下一周的走势 
+
+Prediction 0.40, Pattern 3.6296, Combined Score 81
+Prediction 0.40, Pattern 3.6402, Combined Score 81
+Prediction 0.39, Pattern 3.6554, Combined Score 82
+Prediction 0.40, Pattern 3.6302, Combined Score 91
+Prediction 0.40, Pattern 0.7813, Combined Score 123
+Prediction 0.41, Pattern 0.0487, Combined Score 130
+Prediction 0.39, Pattern 3.6568, Combined Score 135
+Prediction 0.40, Pattern 0.0484, Combined Score 142
+Prediction 0.39, Pattern 3.6288, Combined Score 145
+Prediction 0.38, Pattern 3.6580, Combined Score 148
