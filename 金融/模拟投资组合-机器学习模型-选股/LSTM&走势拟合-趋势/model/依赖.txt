@@ -1,0 +1,7 @@
+pip install protobuf==3.20.0 scikit-learn tensorflow-gpu==2.9.0 pandas numpy joblib matplotlib openpyxl
+
+-i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+
+
+CUDA 11.7
+CUDNN 8.9.7
