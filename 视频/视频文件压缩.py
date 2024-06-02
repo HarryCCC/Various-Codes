@@ -1,52 +1,78 @@
 import subprocess
+import re
 
-def compress_video(input_path, output_path, bitrate='1000k', output_format='mp4'):
-    """
-    Compresses a video file to a specified bitrate and format, with progress displayed in the console.
+def parse_ffmpeg_output(output):
+    bitrate_pattern = re.compile(r'bitrate:\s+(\d+)\s+kb/s')
+    fps_pattern = re.compile(r'(\d+(?:\.\d+)?)\s+fps')
+    
+    bitrate = None
+    frame_rate = None
+    
+    for line in output.splitlines():
+        if not bitrate:
+            bitrate_match = bitrate_pattern.search(line)
+            if bitrate_match:
+                bitrate = int(bitrate_match.group(1))
+        
+        if not frame_rate:
+            fps_match = fps_pattern.search(line)
+            if fps_match:
+                frame_rate = float(fps_match.group(1))
+    
+    return bitrate, frame_rate
 
-    Args:
-    input_path (str): Path to the input video file.
-    output_path (str): Path where the output video file will be saved.
-    bitrate (str): Target bitrate for compression (e.g., '1000k' for 1000 kbps).
-    output_format (str): Output video format (e.g., 'mp4', 'avi').
+def compress_video(input_file, compression_ratio=0.5, frame_rate=None, use_gpu=False):
+    output_file = input_file.replace('.mp4', '_compressed.mp4')
+    
+    # 获取输入视频的信息
+    probe_command = [
+        'ffmpeg', '-i', input_file, '-hide_banner'
+    ]
+    result = subprocess.run(probe_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+    bitrate, original_frame_rate = parse_ffmpeg_output(result.stderr)
+    
+    if bitrate is None or original_frame_rate is None:
+        print("Failed to retrieve video information.")
+        return
 
-    Returns:
-    bool: True if compression is successful, False otherwise.
-    """
+    # 计算目标比特率
+    target_bitrate = int(bitrate * compression_ratio)
+    
+    ffmpeg_command = [
+        'ffmpeg',
+        '-i', input_file,
+        '-b:v', f'{target_bitrate}k',  # 设置目标比特率
+    ]
+
+    # 调整帧率
+    if frame_rate and original_frame_rate > frame_rate:
+        ffmpeg_command.extend(['-r', str(frame_rate)])  # 降低帧率
+
+    if use_gpu:
+        ffmpeg_command.extend(['-vcodec', 'h264_nvenc'])  # 使用NVIDIA显卡的H.264编码器
+    else:
+        ffmpeg_command.extend(['-vcodec', 'libx264'])  # 使用软件编码器
+    
+    ffmpeg_command.append(output_file)
+
     try:
-        # Constructing the ffmpeg command for video compression
-        command = [
-            'ffmpeg',
-            '-i', input_path,  # Input file
-            '-b:v', bitrate,  # Video bitrate
-            '-c:v', 'libx264',  # Video codec
-            '-preset', 'fast',  # Preset for compression speed/efficiency tradeoff
-            output_path + '.' + output_format  # Output file
-        ]
+        subprocess.run(ffmpeg_command, check=True)
+        print(f"Compressed video saved as {output_file}")
+    except subprocess.CalledProcessError as e:
+        if use_gpu:
+            print("Failed to use GPU for compression.")
+            continue_with_cpu = input("Do you want to continue with CPU instead? (Y/N): ")
+            if continue_with_cpu.lower() == 'y':
+                compress_video(input_file, compression_ratio, frame_rate, use_gpu=False)
+            else:
+                print("Compression aborted.")
+        else:
+            print(f"Error occurred: {e}")
 
-        # Execute the command and handle progress
-        process = subprocess.Popen(command, stderr=subprocess.PIPE, text=True)
-        for line in process.stderr:
-            if "time=" in line:
-                print(line.strip())
-        
-        process.wait()  # Wait for process to finish
+if __name__ == "__main__":
+    input_video = "video.mp4"
+    compression_ratio = 0.1 # 压缩比率，0-1之间，1表示比特率不变，0.5表示比特率为原来的0.5倍
+    frame_rate = 30  # 指定压缩后的帧率，如无需要可以设置为None
+    use_gpu = True  # 设置为True以使用GPU，否则设置为False
 
-        # Check if ffmpeg command was successful
-        if process.returncode != 0:
-            print("Video compression failed.")
-            return False
-        
-        print("Video compressed successfully.")
-        return True
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return False
-
-
-success = compress_video('raw_camera.mp4', 'compressed_video', '1000k', 'mp4')
-
-if success:
-    print("Video compressed successfully.")
-else:
-    print("Video compression failed.")
+    compress_video(input_video, compression_ratio, frame_rate, use_gpu)
