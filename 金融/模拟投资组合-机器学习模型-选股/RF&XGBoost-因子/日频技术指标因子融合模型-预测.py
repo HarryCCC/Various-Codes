@@ -13,8 +13,8 @@ stock_info = predict_df.iloc[:, :2]  # 前两列是股票代码和股票名称
 X_predict = predict_df.iloc[:, 2:]  # 预测数据中从第三列开始为特征
 
 # 加载训练好的模型
-xgb_model = joblib.load('trained_xgboost_model.joblib')
-rf_model = joblib.load('trained_rf_model.joblib')
+xgb_model = joblib.load('trained_xgboost_model_optimized.joblib')
+rf_model = joblib.load('trained_rf_model_optimized.joblib')
 
 # 重复进行双重加权预测三次，并取平均值
 predictions = []

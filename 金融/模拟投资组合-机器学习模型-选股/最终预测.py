@@ -5,7 +5,7 @@ file1 = 'RF&XGBoost因子-预测结果.xlsx'
 df1 = pd.read_excel(file1)
 
 # 读取第二个 Excel 文件
-file2 = 'LSTM&走势拟合-预测结果.xlsx'
+file2 = 'LSTM-预测结果.xlsx'
 df2 = pd.read_excel(file2)
 
 # 提取股票名称和位置

@@ -32,7 +32,7 @@ def split_pdf(input_pdf, output_pdf, page_height, keep_center=False):
                 
                 if keep_center:
                     # 只保留中央60%的内容
-                    center_width = original_width * 0.5
+                    center_width = original_width * 0.65  #（GPT特调）
                     left_margin = (original_width - center_width) / 2
                     new_page.mediabox.lower_left = (left_margin, lower_bound)
                     new_page.mediabox.upper_right = (original_width - left_margin, upper_bound)
@@ -50,9 +50,9 @@ def split_pdf(input_pdf, output_pdf, page_height, keep_center=False):
             writer.write(output_file)
 
 # 使用示例
-input_pdf = 'input.pdf'
-output_pdf = 'output.pdf'
-page_height = 1811  # 自定义页面高度
+input_pdf = 'FINM3005_LEC_GPT4o.pdf'
+output_pdf = 'FINM3005_LEC_GPT4o_Paged.pdf'
+page_height = 2354.3  # 自定义页面高度（GPT特调）
 
 # 调用函数，keep_center参数设置为True，只保留每页中央60%的内容并放缩
 split_pdf(input_pdf, output_pdf, page_height, keep_center=True)

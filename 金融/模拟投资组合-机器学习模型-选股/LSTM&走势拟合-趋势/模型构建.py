@@ -16,7 +16,7 @@ feature_scaler_file = 'model/feature_scaler.gz'
 target_scaler_file = 'model/target_scaler.gz'
 time_step = 40
 test_size = 0.1
-batch_size = 32
+batch_size = 64
 epochs = 10
 
 # 参数化LSTM和Dense层的units数
