@@ -54,7 +54,7 @@ bayes_search = BayesSearchCV(estimator=rf_model, search_spaces=param_space,
                              n_iter=100, cv=3, n_jobs=-1, verbose=2, scoring='neg_mean_squared_error', random_state=42)
 
 # 自定义早停机制实例
-early_stopper = CustomEarlyStopper(no_improvement_stop=10)
+early_stopper = CustomEarlyStopper(no_improvement_stop=5)
 verbose_callback = VerboseCallback(n_total=100)
 
 # 执行贝叶斯优化
