@@ -8,7 +8,7 @@ import time
 # 全局变量，用于控制滚动状态
 scrolling = False
 stop_event = threading.Event()
-scroll_speed = 20  # 默认滚动速度
+scroll_speed = 30  # 默认滚动速度
 
 def on_click(x, y, button, pressed):
     if pressed:
