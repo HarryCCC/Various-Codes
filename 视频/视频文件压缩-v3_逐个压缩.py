@@ -173,8 +173,8 @@ def is_video_file(filename):
     _, ext = os.path.splitext(filename)
     return ext.lower() in video_extensions
 
-def process_videos(directory, compression_ratio=0.5, frame_rate=None, use_gpu=False, max_usage=0.8):
-    """处理指定目录中的所有视频文件，一旦有失败立即停止所有处理"""
+def process_videos(directory, compression_ratio=0.1, frame_rate=None, use_gpu=False, max_usage=0.6):
+    """处理指定目录中的所有视频文件，失败时停止，成功时继续处理全部"""
     # 检查GPU编码支持
     if use_gpu and not GPU_ENCODING_AVAILABLE:
         print("警告: GPU编码不可用，自动降级到CPU编码")
@@ -194,23 +194,53 @@ def process_videos(directory, compression_ratio=0.5, frame_rate=None, use_gpu=Fa
     total_files = len(video_files)
     print(f"找到 {total_files} 个视频文件需要处理")
     
-    # 尝试处理第一个视频文件
-    filename = os.path.basename(video_files[0])
-    print(f"\n正在处理视频: {filename}")
+    # 尝试处理第一个视频文件作为测试
+    first_file = video_files[0]
+    first_filename = os.path.basename(first_file)
+    print(f"\n正在处理第一个视频(测试): {first_filename}")
     
-    success = compress_video(video_files[0], compression_ratio, frame_rate, use_gpu, max_usage)
+    first_success = compress_video(first_file, compression_ratio, frame_rate, use_gpu, max_usage)
     
-    if not success:
-        print("\n视频压缩失败，停止所有后续处理！")
+    if not first_success:
+        print("\n第一个视频压缩失败，停止所有后续处理！")
         print("请解决问题后再尝试。可能的原因包括:")
         print("- NVIDIA驱动版本过低(需要551.76或更新)")
         print("- 视频格式不支持")
         print("- 磁盘空间不足")
         print("- FFmpeg配置问题")
         return
+    
+    print(f"\n第一个视频处理成功: {first_filename}")
+    
+    # 第一个视频成功，继续处理剩余视频
+    if len(video_files) > 1:
+        print(f"继续处理剩余 {len(video_files) - 1} 个视频文件...")
         
-    print(f"\n处理完成: {filename} 压缩成功!")
-    print("您可以继续处理更多视频文件，或修改脚本以批量处理。")
+        processed = 1
+        failed = 0
+        
+        # 处理剩余视频文件
+        for i, video_file in enumerate(video_files[1:], start=2):
+            filename = os.path.basename(video_file)
+            print(f"\n[{i}/{total_files}] 正在处理视频: {filename}")
+            
+            success = compress_video(video_file, compression_ratio, frame_rate, use_gpu, max_usage)
+            
+            if success:
+                processed += 1
+                print(f"视频压缩成功: {filename}")
+            else:
+                failed += 1
+                print(f"视频压缩失败: {filename} - 继续处理下一个视频")
+        
+        # 汇总处理结果
+        print(f"\n处理完成! 总计: {total_files} 个视频")
+        print(f"成功: {processed} 个")
+        print(f"失败: {failed} 个")
+    else:
+        print("\n目录中只有一个视频文件，且已处理完成。")
+
+    print("如需修改更多压缩参数，请编辑脚本中的相关设置。")
 
 if __name__ == "__main__":
     try:
@@ -225,7 +255,7 @@ if __name__ == "__main__":
         # 设置参数
         directory = "."  # 当前目录，根据需要修改
         compression_ratio = 0.1  # 压缩比例
-        frame_rate = 30  # 目标帧率
+        frame_rate = 25  # 目标帧率
         use_gpu = True  # 如果GPU可用，则使用GPU
         max_usage = 0.6  # CPU或GPU的最大使用率
         
