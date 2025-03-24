@@ -8,7 +8,7 @@ import time
 # 全局变量，用于控制滚动状态
 scrolling = False
 stop_event = threading.Event()
-scroll_speed = 30  # 默认滚动速度
+scroll_speed = 40  # 默认滚动速度
 
 def on_click(x, y, button, pressed):
     if pressed:
@@ -62,7 +62,7 @@ def set_speed(*args):
 # 创建主窗口
 root = tk.Tk()
 root.title("滑动模拟器")
-root.geometry("300x250")  # 调整窗口大小
+root.geometry("400x400")  # 调整窗口大小
 root.configure(bg="#2E2E2E")  # 设置灰黑色背景
 
 # 使用 ttk 风格
