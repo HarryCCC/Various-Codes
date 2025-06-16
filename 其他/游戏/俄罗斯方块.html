@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄羅斯方塊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .grid-bg {
+            background-color: #1e293b; /* bg-slate-800 */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="flex flex-wrap items-start justify-center gap-8">
+        
+        <!-- Game Board -->
+        <div class="text-center">
+            <h1 class="text-4xl font-bold mb-4 text-fuchsia-400">俄羅斯方塊</h1>
+            <div id="game-board" class="relative w-[300px] h-[600px] bg-slate-800 rounded-lg shadow-2xl border-4 border-gray-700 grid-bg" style="background-size: 30px 30px;">
+                <canvas id="game-canvas"></canvas>
+                <div id="message-screen" class="absolute inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-center z-10">
+                    <h2 id="message-title" class="text-5xl font-extrabold text-white mb-6">準備好了嗎？</h2>
+                    <button id="start-button" class="px-8 py-3 bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold rounded-lg text-xl transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-fuchsia-300">
+                        開始遊戲
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="w-full sm:w-48 text-center sm:text-left pt-16">
+            <div class="bg-slate-800 p-4 rounded-lg shadow-lg mb-4">
+                <h3 class="text-lg font-bold text-gray-400 mb-2">分數</h3>
+                <p id="score" class="text-4xl font-bold text-amber-400">0</p>
+            </div>
+             <div class="bg-slate-800 p-4 rounded-lg shadow-lg mb-4">
+                <h3 class="text-lg font-bold text-gray-400 mb-2">等級</h3>
+                <p id="level" class="text-4xl font-bold text-cyan-400">1</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-lg shadow-lg">
+                <h3 class="text-lg font-bold text-gray-400 mb-2">下一個</h3>
+                <canvas id="next-canvas" class="bg-slate-900 rounded"></canvas>
+            </div>
+            <div class="mt-4 text-gray-400 text-sm">
+                <p><kbd>←</kbd> <kbd>→</kbd>: 移動</p>
+                <p><kbd>↓</kbd>: 加速</p>
+                <p><kbd>↑</kbd>: 旋轉</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next-canvas');
+        const nextCtx = nextCanvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const messageScreen = document.getElementById('message-screen');
+        const messageTitle = document.getElementById('message-title');
+        const startButton = document.getElementById('start-button');
+
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        const NEXT_COLS = 4;
+        const NEXT_ROWS = 4;
+
+        canvas.width = COLS * BLOCK_SIZE;
+        canvas.height = ROWS * BLOCK_SIZE;
+        nextCanvas.width = NEXT_COLS * BLOCK_SIZE;
+        nextCanvas.height = NEXT_ROWS * BLOCK_SIZE;
+
+        ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
+        nextCtx.scale(BLOCK_SIZE, BLOCK_SIZE);
+        
+        const COLORS = [
+            null, '#a855f7', '#ec4899', '#f59e0b', '#84cc16', '#0ea5e9', '#ef4444', '#34d399'
+        ];
+
+        const SHAPES = [
+            [],
+            [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
+            [[2, 0, 0], [2, 2, 2], [0, 0, 0]], // J
+            [[0, 0, 3], [3, 3, 3], [0, 0, 0]], // L
+            [[4, 4], [4, 4]], // O
+            [[0, 5, 5], [5, 5, 0], [0, 0, 0]], // S
+            [[0, 6, 0], [6, 6, 6], [0, 0, 0]], // T
+            [[7, 7, 0], [0, 7, 7], [0, 0, 0]]  // Z
+        ];
+
+        let board = createBoard(COLS, ROWS);
+        let piece;
+        let nextPiece;
+        let score = 0;
+        let level = 1;
+        let linesCleared = 0;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let gameRunning = false;
+
+        function createBoard(cols, rows) {
+            return Array.from({ length: rows }, () => Array(cols).fill(0));
+        }
+
+        function newPiece() {
+            const typeId = Math.floor(Math.random() * (SHAPES.length - 1)) + 1;
+            const matrix = SHAPES[typeId];
+            return {
+                matrix: matrix,
+                pos: { x: Math.floor(COLS / 2) - Math.floor(matrix[0].length / 2), y: 0 },
+                id: typeId
+            };
+        }
+
+        function drawMatrix(matrix, offset, context) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = COLORS[value];
+                        context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                    }
+                });
+            });
+        }
+        
+        function draw() {
+            // Main board
+            ctx.fillStyle = '#1e293b'; // bg-slate-800
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawMatrix(board, { x: 0, y: 0 }, ctx);
+            drawMatrix(piece.matrix, piece.pos, ctx);
+
+            // Next piece board
+            nextCtx.fillStyle = '#0f172a'; // bg-slate-900
+            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            drawMatrix(nextPiece.matrix, {x: (NEXT_COLS - nextPiece.matrix[0].length) / 2, y: (NEXT_ROWS - nextPiece.matrix.length) / 2}, nextCtx);
+        }
+        
+        function update(time = 0) {
+            if (!gameRunning) return;
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                pieceDrop();
+            }
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function pieceDrop() {
+            piece.pos.y++;
+            if (checkCollision(board, piece)) {
+                piece.pos.y--;
+                merge(board, piece);
+                resetPiece();
+                clearLines();
+            }
+            dropCounter = 0;
+        }
+
+        function merge(board, piece) {
+            piece.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        board[y + piece.pos.y][x + piece.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function resetPiece() {
+            piece = nextPiece;
+            nextPiece = newPiece();
+            if (checkCollision(board, piece)) {
+                gameOver();
+            }
+        }
+
+        function clearLines() {
+            let cleared = 0;
+            outer: for (let y = board.length - 1; y > 0; --y) {
+                for (let x = 0; x < board[y].length; ++x) {
+                    if (board[y][x] === 0) {
+                        continue outer;
+                    }
+                }
+                const row = board.splice(y, 1)[0].fill(0);
+                board.unshift(row);
+                ++y;
+                cleared++;
+            }
+            
+            if (cleared > 0) {
+                const lineScores = [0, 40, 100, 300, 1200];
+                score += lineScores[cleared] * level;
+                linesCleared += cleared;
+                level = Math.floor(linesCleared / 10) + 1;
+                dropInterval = 1000 / level;
+                updateUI();
+            }
+        }
+
+        function checkCollision(board, piece) {
+            for (let y = 0; y < piece.matrix.length; y++) {
+                for (let x = 0; x < piece.matrix[y].length; x++) {
+                    if (piece.matrix[y][x] !== 0 &&
+                        (board[y + piece.pos.y] &&
+                         board[y + piece.pos.y][x + piece.pos.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function rotate(matrix, dir) {
+            const newMatrix = matrix.map((_, i) => matrix.map(col => col[i]));
+            if (dir > 0) {
+                newMatrix.forEach(row => row.reverse());
+            } else {
+                newMatrix.reverse();
+            }
+            return newMatrix;
+        }
+
+        function pieceRotate() {
+            const originalPos = piece.pos.x;
+            let offset = 1;
+            const rotated = rotate(piece.matrix, 1);
+            piece.matrix = rotated;
+
+            while (checkCollision(board, piece)) {
+                piece.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > piece.matrix[0].length) {
+                    piece.matrix = rotate(piece.matrix, -1); // revert rotation
+                    piece.pos.x = originalPos;
+                    return;
+                }
+            }
+        }
+        
+        function pieceMove(dir) {
+            piece.pos.x += dir;
+            if (checkCollision(board, piece)) {
+                piece.pos.x -= dir;
+            }
+        }
+        
+        function updateUI() {
+            scoreEl.textContent = score;
+            levelEl.textContent = level;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            messageScreen.classList.remove('hidden');
+            messageTitle.textContent = "遊戲結束";
+            startButton.textContent = "重新開始";
+        }
+        
+        function startGame() {
+            board.forEach(row => row.fill(0));
+            score = 0;
+            level = 1;
+            linesCleared = 0;
+            dropInterval = 1000;
+            updateUI();
+            
+            piece = newPiece();
+            nextPiece = newPiece();
+            
+            messageScreen.classList.add('hidden');
+            gameRunning = true;
+            update();
+        }
+
+        document.addEventListener('keydown', event => {
+            if (!gameRunning) return;
+            if (event.key === 'ArrowLeft') {
+                pieceMove(-1);
+            } else if (event.key === 'ArrowRight') {
+                pieceMove(1);
+            } else if (event.key === 'ArrowDown') {
+                pieceDrop();
+            } else if (event.key === 'ArrowUp') {
+                pieceRotate();
+            }
+        });
+
+        startButton.addEventListener('click', startGame);
+
+    </script>
+</body>
+</html>

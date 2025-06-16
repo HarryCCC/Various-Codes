@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打磚塊遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none; /* 防止滑動時滾動頁面 */
+        }
+        canvas {
+            background: #0f172a; /* bg-slate-900 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-xl mx-auto text-center">
+        <h1 class="text-4xl font-bold mb-2 text-indigo-400">打磚塊</h1>
+        <div class="flex justify-between items-center w-full mb-4 px-2">
+            <div class="text-lg">
+                <span class="text-gray-400">分數:</span>
+                <span id="score" class="font-bold text-2xl text-amber-400">0</span>
+            </div>
+            <div class="text-lg">
+                 <span class="text-gray-400">生命:</span>
+                <span id="lives" class="font-bold text-2xl text-rose-500">❤️❤️❤️</span>
+            </div>
+        </div>
+
+        <div id="game-container" class="relative w-full" style="aspect-ratio: 4 / 5;">
+            <canvas id="game-canvas" class="rounded-xl shadow-2xl border-4 border-gray-700"></canvas>
+            <div id="message-screen" class="absolute inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-center">
+                <h2 id="message-title" class="text-5xl font-extrabold text-white mb-6">準備好了嗎？</h2>
+                <button id="start-button" class="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-lg text-xl transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                    開始遊戲
+                </button>
+            </div>
+        </div>
+        <p class="text-gray-400 mt-4">移動滑鼠或在螢幕上滑動來控制板子</p>
+    </div>
+
+    <script>
+        // DOM 元素
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const livesEl = document.getElementById('lives');
+        const messageScreen = document.getElementById('message-screen');
+        const messageTitle = document.getElementById('message-title');
+        const startButton = document.getElementById('start-button');
+        const gameContainer = document.getElementById('game-container');
+
+        // 畫布尺寸
+        let canvasWidth, canvasHeight;
+
+        // 遊戲物件
+        let paddle, ball, bricks = [];
+        
+        // 遊戲狀態
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let animationFrameId;
+
+        // 磚塊設定
+        const brickRowCount = 6;
+        const brickColumnCount = 8;
+        const brickPadding = 5;
+        const brickOffsetTop = 30;
+        const brickOffsetLeft = 30;
+        let brickWidth, brickHeight;
+
+        // 初始化遊戲設定
+        function setup() {
+            canvasWidth = gameContainer.clientWidth;
+            canvasHeight = gameContainer.clientHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            brickWidth = (canvasWidth - brickOffsetLeft * 2 - brickPadding * (brickColumnCount -1)) / brickColumnCount;
+            brickHeight = 20;
+
+            paddle = {
+                width: 100,
+                height: 15,
+                x: (canvasWidth - 100) / 2,
+                y: canvasHeight - 30,
+                speed: 8
+            };
+
+            ball = {
+                radius: 10,
+                x: canvasWidth / 2,
+                y: paddle.y - 10,
+                speed: 5,
+                dx: 4,
+                dy: -4
+            };
+
+            createBricks();
+            updateUI();
+            draw();
+        }
+
+        function createBricks() {
+            bricks = [];
+            const colors = ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e", "#0ea5e9"];
+            for (let c = 0; c < brickColumnCount; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRowCount; r++) {
+                    const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                    const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                    bricks[c][r] = { x: brickX, y: brickY, status: 1, color: colors[r % colors.length] };
+                }
+            }
+        }
+        
+        function resetLevel() {
+            // 重置球和板子位置
+            paddle.x = (canvasWidth - paddle.width) / 2;
+            ball.x = canvasWidth / 2;
+            ball.y = paddle.y - ball.radius;
+            ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = -4;
+        }
+
+        // 遊戲主循環
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            update();
+            draw();
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        // 更新遊戲狀態
+        function update() {
+            moveBall();
+            collisionDetection();
+        }
+        
+        function moveBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // 撞左右牆
+            if (ball.x + ball.radius > canvasWidth || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+            // 撞上牆
+            if (ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+            
+            // 撞板子
+            if (ball.y + ball.radius > paddle.y && 
+                ball.x > paddle.x && 
+                ball.x < paddle.x + paddle.width) {
+                 // 改變反彈角度
+                let collidePoint = ball.x - (paddle.x + paddle.width / 2);
+                collidePoint = collidePoint / (paddle.width / 2);
+                let angle = collidePoint * (Math.PI / 3); // 最大60度
+                ball.dx = ball.speed * Math.sin(angle);
+                ball.dy = -ball.speed * Math.cos(angle);
+            }
+
+            // 球掉下去
+            if (ball.y + ball.radius > canvasHeight) {
+                lives--;
+                updateUI();
+                if (lives <= 0) {
+                    gameOver("遊戲結束");
+                } else {
+                    resetLevel();
+                }
+            }
+        }
+        
+        function collisionDetection() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const b = bricks[c][r];
+                    if (b.status === 1) {
+                        if (ball.x > b.x && ball.x < b.x + brickWidth && ball.y > b.y && ball.y < b.y + brickHeight) {
+                            ball.dy = -ball.dy;
+                            b.status = 0;
+                            score++;
+                            updateUI();
+                            checkWin();
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            const allBricksBroken = bricks.every(col => col.every(brick => brick.status === 0));
+            if (allBricksBroken) {
+                gameOver("恭喜你，獲勝了！");
+            }
+        }
+
+        function gameOver(message) {
+            gameRunning = false;
+            cancelAnimationFrame(animationFrameId);
+            messageScreen.classList.remove('hidden');
+            messageTitle.textContent = message;
+            startButton.textContent = "重新開始";
+        }
+        
+        function updateUI() {
+            scoreEl.textContent = score;
+            livesEl.textContent = '❤️'.repeat(lives);
+        }
+
+        // 繪製所有內容
+        function draw() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            drawPaddle();
+            drawBall();
+            drawBricks();
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.fillStyle = '#6366f1'; // indigo-500
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "#f59e0b"; // amber-500
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        const b = bricks[c][r];
+                        ctx.beginPath();
+                        ctx.rect(b.x, b.y, brickWidth, brickHeight);
+                        ctx.fillStyle = b.color;
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+        
+        // 移動板子
+        function movePaddle(e) {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            let relativeX;
+             if (e.type === 'touchmove') {
+                relativeX = e.touches[0].clientX - rect.left;
+            } else {
+                relativeX = e.clientX - rect.left;
+            }
+           
+            if (relativeX > 0 && relativeX < canvasWidth) {
+                paddle.x = relativeX - paddle.width / 2;
+                // 邊界限制
+                if(paddle.x < 0) paddle.x = 0;
+                if(paddle.x + paddle.width > canvasWidth) paddle.x = canvasWidth - paddle.width;
+            }
+        }
+        
+        function startGame() {
+            // 重置遊戲狀態
+            score = 0;
+            lives = 3;
+            messageScreen.classList.add('hidden');
+            setup(); // 重新設定所有物件
+            gameRunning = true;
+            gameLoop();
+        }
+
+        // 事件監聽
+        startButton.addEventListener('click', startGame);
+        document.addEventListener('mousemove', movePaddle);
+        document.addEventListener('touchmove', movePaddle);
+        window.addEventListener('resize', () => {
+             // 只有在遊戲未開始時才重新設定
+            if (!gameRunning) {
+                setup();
+            }
+        });
+
+        // 初始載入
+        setup();
+    </script>
+</body>
+</html>

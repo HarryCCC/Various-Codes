@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貪吃蛇遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none; /* 防止在移動設備上滑動時滾動頁面 */
+        }
+        .touch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-lg mx-auto text-center">
+        <h1 class="text-4xl font-bold mb-2 text-emerald-400">貪吃蛇</h1>
+        <p class="text-gray-400 mb-4">使用方向鍵或在螢幕上滑動來控制方向</p>
+        
+        <div class="flex justify-center items-center space-x-6 mb-4">
+            <div class="text-lg">
+                <span class="text-gray-400">分數:</span>
+                <span id="score" class="font-bold text-2xl text-yellow-400">0</span>
+            </div>
+            <div class="text-lg">
+                <span class="text-gray-400">最高分:</span>
+                <span id="high-score" class="font-bold text-2xl text-cyan-400">0</span>
+            </div>
+        </div>
+
+        <div id="game-container" class="relative w-full aspect-square bg-gray-800 rounded-xl shadow-2xl border-4 border-gray-700 overflow-hidden">
+            <canvas id="game-canvas"></canvas>
+            <div id="game-over-screen" class="absolute inset-0 bg-black bg-opacity-70 flex-col justify-center items-center text-center hidden">
+                <h2 class="text-5xl font-extrabold text-red-500 mb-4">遊戲結束</h2>
+                <p class="text-xl mb-6">你的分數: <span id="final-score">0</span></p>
+                <button id="restart-button" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-xl transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300">
+                    重新開始
+                </button>
+            </div>
+             <div id="start-screen" class="absolute inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-center">
+                <button id="start-button" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-xl transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300">
+                    開始遊戲
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 元素獲取
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('high-score');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const gameContainer = document.getElementById('game-container');
+
+        // 遊戲設定
+        const gridSize = 20; // 每個格子的像素大小
+        let tileCount; // 畫布能容納的格子數量
+
+        // 遊戲狀態變數
+        let snake = [];
+        let food = {};
+        let score = 0;
+        let highScore = localStorage.getItem('snakeHighScore') || 0; // 從本地存儲讀取最高分
+        let direction;
+        let changingDirection = false; // 防止快速連續轉向導致蛇自己撞到自己
+        let gameLoop;
+        let isGameOver = true;
+
+        // 初始化畫布尺寸
+        function resizeCanvas() {
+            const containerSize = gameContainer.clientWidth;
+            canvas.width = containerSize;
+            canvas.height = containerSize;
+            tileCount = Math.floor(containerSize / gridSize);
+            // 遊戲結束時，需要重繪背景
+            if (isGameOver) {
+                drawBoard();
+            }
+        }
+        
+        // 遊戲初始化
+        function initializeGame() {
+            isGameOver = false;
+            score = 0;
+            scoreEl.textContent = 0;
+            direction = { x: 1, y: 0 }; // 初始向右
+            snake = [
+                { x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) },
+                { x: Math.floor(tileCount / 2) - 1, y: Math.floor(tileCount / 2) },
+                { x: Math.floor(tileCount / 2) - 2, y: Math.floor(tileCount / 2) }
+            ];
+            gameOverScreen.classList.add('hidden');
+            gameOverScreen.classList.remove('flex');
+            startScreen.classList.add('hidden');
+            
+            createFood();
+            mainLoop();
+        }
+
+        // 主遊戲循環
+        function mainLoop() {
+            if (isGameOver) return;
+            
+            gameLoop = setTimeout(() => {
+                changingDirection = false;
+                clearCanvas();
+                drawBoard();
+                drawFood();
+                moveSnake();
+                drawSnake();
+                checkCollision();
+                mainLoop();
+            }, 100); // 遊戲速度
+        }
+
+        // 清空畫布
+        function clearCanvas() {
+            ctx.fillStyle = '#1f2937'; // bg-gray-800
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // 繪製棋盤格線 (可選)
+        function drawBoard() {
+             ctx.strokeStyle = '#374151'; // grid line color
+             for (let i = 0; i < tileCount; i++) {
+                 ctx.beginPath();
+                 ctx.moveTo(i * gridSize, 0);
+                 ctx.lineTo(i * gridSize, canvas.height);
+                 ctx.stroke();
+                 ctx.beginPath();
+                 ctx.moveTo(0, i * gridSize);
+                 ctx.lineTo(canvas.width, i * gridSize);
+                 ctx.stroke();
+             }
+        }
+
+        // 繪製蛇
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                // 蛇頭使用不同顏色
+                ctx.fillStyle = index === 0 ? '#34d399' : '#10b981'; // emerald-400 / emerald-500
+                ctx.strokeStyle = '#065f46'; // emerald-800
+                ctx.lineWidth = 2;
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+                ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+            });
+        }
+        
+        // 移動蛇
+        function moveSnake() {
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            snake.unshift(head); // 在頭部添加新的一節
+
+            // 檢查是否吃到食物
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreEl.textContent = score;
+                createFood();
+            } else {
+                snake.pop(); // 如果沒吃到食物，就移除尾部
+            }
+        }
+        
+        // 創建食物
+        function createFood() {
+            let foodX, foodY;
+            // 確保食物不會生成在蛇身上
+            while (true) {
+                foodX = Math.floor(Math.random() * tileCount);
+                foodY = Math.floor(Math.random() * tileCount);
+                let onSnake = snake.some(part => part.x === foodX && part.y === foodY);
+                if (!onSnake) break;
+            }
+            food = { x: foodX, y: foodY };
+        }
+
+        // 繪製食物
+        function drawFood() {
+            ctx.fillStyle = '#facc15'; // yellow-400
+            ctx.strokeStyle = '#ca8a04'; // yellow-600
+            ctx.lineWidth = 2;
+            const foodSize = gridSize * 0.8;
+            const offset = (gridSize - foodSize) / 2;
+            ctx.beginPath();
+            ctx.arc(food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2, foodSize / 2, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        // 檢查碰撞
+        function checkCollision() {
+            const head = snake[0];
+
+            // 撞牆
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+                return;
+            }
+
+            // 撞自己
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        // 遊戲結束處理
+        function gameOver() {
+            isGameOver = true;
+            clearTimeout(gameLoop);
+            
+            // 更新最高分
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+                highScoreEl.textContent = highScore;
+            }
+
+            finalScoreEl.textContent = score;
+            gameOverScreen.classList.remove('hidden');
+            gameOverScreen.classList.add('flex');
+        }
+
+        // 處理鍵盤輸入
+        function handleKeyDown(e) {
+            if (changingDirection) return;
+            changingDirection = true;
+
+            const keyPressed = e.key;
+            const goingUp = direction.y === -1;
+            const goingDown = direction.y === 1;
+            const goingRight = direction.x === 1;
+            const goingLeft = direction.x === -1;
+
+            if ((keyPressed === 'ArrowLeft' || keyPressed.toLowerCase() === 'a') && !goingRight) {
+                direction = { x: -1, y: 0 };
+            } else if ((keyPressed === 'ArrowUp' || keyPressed.toLowerCase() === 'w') && !goingDown) {
+                direction = { x: 0, y: -1 };
+            } else if ((keyPressed === 'ArrowRight' || keyPressed.toLowerCase() === 'd') && !goingLeft) {
+                direction = { x: 1, y: 0 };
+            } else if ((keyPressed === 'ArrowDown' || keyPressed.toLowerCase() === 's') && !goingUp) {
+                direction = { x: 0, y: 1 };
+            }
+        }
+        
+        // 處理觸控滑動
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        function handleTouchStart(e) {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }
+
+        function handleTouchEnd(e) {
+            if (isGameOver) return;
+            if (changingDirection) return;
+
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }
+        
+        function handleSwipe() {
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+            
+            // 確定是水平還是垂直滑動
+            if (Math.max(absDx, absDy) < 50) return; // 忽略太小的滑動
+
+            changingDirection = true;
+            const goingUp = direction.y === -1;
+            const goingDown = direction.y === 1;
+            const goingRight = direction.x === 1;
+            const goingLeft = direction.x === -1;
+
+            if (absDx > absDy) { // 水平滑動
+                if (dx > 0 && !goingLeft) { //向右
+                    direction = { x: 1, y: 0 };
+                } else if (dx < 0 && !goingRight) { //向左
+                    direction = { x: -1, y: 0 };
+                }
+            } else { // 垂直滑動
+                if (dy > 0 && !goingUp) { //向下
+                    direction = { x: 0, y: 1 };
+                } else if (dy < 0 && !goingDown) { //向上
+                    direction = { x: 0, y: -1 };
+                }
+            }
+        }
+
+
+        // 事件監聽器
+        document.addEventListener('keydown', handleKeyDown);
+        gameContainer.addEventListener('touchstart', handleTouchStart, false);
+        gameContainer.addEventListener('touchend', handleTouchEnd, false);
+        
+        startButton.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            initializeGame();
+        });
+
+        restartButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // 初始載入
+        highScoreEl.textContent = highScore;
+        resizeCanvas();
+    </script>
+</body>
+</html>
