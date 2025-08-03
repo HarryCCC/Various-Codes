@@ -2,22 +2,24 @@
 
 """
 高级图片播放器
-版本 3.5 (最终兼容版):
-- 移除了tqdm进度条库，解决了在.pyw模式下因缺少控制台而导致的启动崩溃问题。
-- 这是可直接双击运行的最终稳定版。
+版本 4.3 (最终版):
+- 重构显示逻辑，彻底消除前景与背景间的白边问题。
+- 再次下调背景模糊程度，视觉效果更精细。
+- 集成所有历史优化，是功能与体验最完善的最终版本。
 """
 
 import tkinter as tk
 from tkinter import messagebox
 import os
 import random
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk, ImageOps, ImageFilter
 import sys
-# from tqdm import tqdm # <--- 修正点 1：删除此行
 
 # --- 全局参数 ---
 TIME_INTERVAL_SECONDS = 2
 SUPPORTED_EXTENSIONS = ('.webp', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.heic', '.heif')
+# <--- 修正点 2：再次下调模糊半径 ---
+BLUR_RADIUS = 10 
 
 # --- HEIF/HEIC格式支持 ---
 try:
@@ -48,8 +50,11 @@ class AdvancedImagePlayer:
         self.root.geometry(self.windowed_geometry)
         self.root.attributes('-topmost', self.is_pinned)
 
-        self.image_label = tk.Label(self.root, bg='black')
-        self.image_label.pack(expand=True, fill='both')
+        self.background_label = tk.Label(self.root, bg='black')
+        self.background_label.place(x=0, y=0, relwidth=1, relheight=1)
+        
+        self.image_label = tk.Label(self.root) # 无背景色以实现透明
+        self.image_label.place(in_=self.background_label, anchor="center", relx=0.5, rely=0.5)
         
         self.create_custom_title_bar()
         self.pin_button.config(fg='cyan') 
@@ -100,26 +105,43 @@ class AdvancedImagePlayer:
             self.windowed_geometry = self.root.geometry()
             if self.resize_job:
                 self.root.after_cancel(self.resize_job)
-            self.resize_job = self.root.after(150, self.redraw_current_image)
+            self.resize_job = self.root.after(150, self.update_image_display)
 
-    def redraw_current_image(self):
+    def update_image_display(self):
+        """核心函数：更新图片显示，包括缩放和模糊背景"""
         if self.current_index == -1 or not hasattr(self.image_label, 'current_pil_image'):
             return
         try:
-            img = self.image_label.current_pil_image
+            # 统一转换为RGB模式，消除透明通道引发的白边问题
+            original_img = self.image_label.current_pil_image.convert("RGB")
+            
             win_width = self.root.winfo_width()
             win_height = self.root.winfo_height()
             if win_width <= 1 or win_height <= 1: return
-            img_width, img_height = img.size
+
+            # 1. 创建模糊背景
+            # 为了性能，先将图片缩小，应用高斯模糊，再放大回窗口尺寸
+            bg_img = original_img.resize((win_width // 10, win_height // 10), Image.Resampling.BOX)
+            bg_img = bg_img.filter(ImageFilter.GaussianBlur(BLUR_RADIUS))
+            bg_img = bg_img.resize((win_width, win_height), Image.Resampling.LANCZOS)
+            
+            bg_photo = ImageTk.PhotoImage(bg_img)
+            self.background_label.config(image=bg_photo)
+            self.background_label.image = bg_photo
+
+            # 2. 缩放前景图片
+            img_width, img_height = original_img.size
             scale = min(win_width / img_width, win_height / img_height)
             new_width, new_height = int(img_width * scale), int(img_height * scale)
+            
             if new_width > 0 and new_height > 0:
-                resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                resized_img = original_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 photo_image = ImageTk.PhotoImage(resized_img)
-                self.image_label.config(image=photo_image)
+                # 更新前景图片，并让其在Label中居中
+                self.image_label.config(image=photo_image, width=new_width, height=new_height)
                 self.image_label.image = photo_image
         except Exception as e:
-            print(f"重绘图片时出错: {e}")
+            print(f"更新图片显示时出错: {e}")
 
     def show_next_image(self):
         if self.root.winfo_width() <= 1 or self.root.winfo_height() <= 1:
@@ -131,7 +153,7 @@ class AdvancedImagePlayer:
             with Image.open(image_path) as img:
                 img = ImageOps.exif_transpose(img)
                 self.image_label.current_pil_image = img
-                self.redraw_current_image()
+                self.update_image_display()
         except Exception as e:
             print(f"无法加载图片 '{os.path.basename(image_path)}': {e}")
             self.root.after(100, self.manual_next_image)
@@ -162,7 +184,7 @@ class AdvancedImagePlayer:
             self.grip_bl.place(relx=0.0, rely=1.0, anchor='sw', width=15, height=15)
             self.root.geometry(self.windowed_geometry)
             self.fullscreen_button.config(text='⛶')
-        self.root.after(50, self.redraw_current_image)
+        self.root.after(50, self.update_image_display)
     
     def on_close(self, event=None):
         self.root.destroy()
@@ -205,18 +227,23 @@ class AdvancedImagePlayer:
 # --- 主函数与智能尺寸计算 ---
 def calculate_initial_geometry(image_files: list) -> str:
     """预扫描图片，计算最合适的初始窗口尺寸"""
-    temp_root = tk.Tk()
-    temp_root.withdraw()
-    screen_width = temp_root.winfo_screenwidth()
-    screen_height = temp_root.winfo_screenheight()
-    temp_root.destroy()
+    try:
+        temp_root = tk.Tk()
+        temp_root.withdraw()
+        screen_width = temp_root.winfo_screenwidth()
+        screen_height = temp_root.winfo_screenheight()
+        temp_root.destroy()
+    except tk.TclError:
+        # 在无头环境等特殊情况下，保守地使用默认值
+        return "640x480"
 
-    max_win_width = screen_width * 0.40
-    max_win_height = screen_height * 0.40
+    # <--- 修正点 1：将最大尺寸限制调整为更紧凑的25% ---
+    max_win_width = screen_width * 0.25
+    max_win_height = screen_height * 0.25
     
     target_w, target_h = 0, 0
 
-    # <--- 修正点 2：将循环语句改回普通的 for 循环 ---
+    # 移除tqdm，确保.pyw可直接运行
     for filepath in image_files:
         try:
             with Image.open(filepath) as img:
