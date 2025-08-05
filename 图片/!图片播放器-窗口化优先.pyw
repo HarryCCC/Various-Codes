@@ -234,8 +234,8 @@ def calculate_initial_geometry(image_files: list) -> str:
         target_w, target_h = 640, 480
 
     # Position the window at (50, 50) for a small offset from the screen edge
-    x_pos = -10
-    y_pos = -30
+    x_pos = 5
+    y_pos = 5
 
     return f"{int(target_w)}x{int(target_h)}+{int(x_pos)}+{int(y_pos)}"
 
