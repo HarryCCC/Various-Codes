@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid 图表编辑器与下载器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body, textarea {
+            font-family: "Times New Roman", Times, serif;
+        }
+        #mermaid-diagram-wrapper {
+            transition: transform 0.2s ease-in-out;
+            transform-origin: center center;
+        }
+        /* Custom styles for the range slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        input[type=range]:hover {
+            opacity: 1;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #0284c7; /* sky-600 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #0284c7;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-6xl mx-auto">
+        
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Mermaid 图表工作台</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left side: Editor and Controls -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">图表编辑器</h2>
+                <textarea id="diagram-source" class="w-full h-80 p-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" spellcheck="false"></textarea>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <button id="render-btn" class="flex-1 bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition">
+                        渲染图表
+                    </button>
+                    <button id="download-png-btn" class="flex-1 bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition">
+                        下载 (PNG)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right side: Diagram Visualization -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-semibold text-gray-700">可视化预览</h2>
+                    <div class="flex items-center gap-2">
+                        <button id="zoom-out-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">-</button>
+                        <input type="range" id="zoom-slider" min="100" max="300" value="100" class="w-24">
+                        <button id="zoom-in-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">+</button>
+                        <span id="zoom-level" class="text-sm text-gray-600 w-12 text-center">100%</span>
+                        <button id="reset-zoom-btn" class="text-sm text-gray-600 hover:text-black transition ml-2">重置</button>
+                    </div>
+                </div>
+                <!-- Mermaid Diagram Container -->
+                <div id="mermaid-container" class="mermaid-container border rounded-lg p-4 bg-gray-50 min-h-[320px] flex items-center justify-center overflow-auto">
+                    <div id="mermaid-diagram-wrapper">
+                         <div id="mermaid-diagram"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Isolated Mermaid Diagram Data for reusability -->
+    <div id="initial-diagram-data" style="display: none;">
+<pre>
+graph TD
+    subgraph "<b>Administrative Accountability</b> (from the State)"
+        A_spacer( )
+        A["<b>CQC Reports & Ratings</b><br>(Warning Notices, Registration Conditions)"]
+        A_spacer ~~~ A
+    end
+
+    subgraph "<b>Professional Accountability</b> (from the Profession)"
+        B_spacer( )
+        B["<b>National Guidelines & Best Practice</b><br>(e.g., NICE, Royal Colleges)"]
+        B_spacer ~~~ B
+    end
+
+    subgraph "<b>Social Accountability</b> (from the Public)"
+        C_spacer( )
+        C["<b>Patient Feedback & Media Scrutiny</b><br>(Patient narratives, Healthwatch, News Coverage)"]
+        C_spacer ~~~ C
+    end
+
+    H[("<b>NHS Hospital Trust</b><br>(Actor)")]
+
+    A -- "Top-down pressure for compliance" --> H;
+    B -- "Pressure to adhere to clinical standards" --> H;
+    C -- "Pressure to respond to public voice" --> H;
+
+    style H fill:#EBF5FB,stroke:#3498DB,stroke-width:4px
+    
+    %% Spacer styles - reduced height by setting a tiny font size
+    style A_spacer fill:none,stroke:none,font-size:1px
+    style B_spacer fill:none,stroke:none,font-size:1px
+    style C_spacer fill:none,stroke:none,font-size:1px
+
+    %% Link styles for spacers (must be first)
+    linkStyle 0 stroke-width:0px
+    linkStyle 1 stroke-width:0px
+    linkStyle 2 stroke-width:0px
+</pre>
+    </div>
+    
+    <script>
+        // Initialize Mermaid.js
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'base',
+            securityLevel: 'loose',
+            fontFamily: '"Times New Roman", Times, serif',
+            themeVariables: {
+                'primaryColor': '#f4f4f5'
+            }
+        });
+
+        // DOM Elements
+        const diagramSourceTextarea = document.getElementById('diagram-source');
+        const mermaidContainer = document.getElementById('mermaid-container');
+        const diagramWrapper = document.getElementById('mermaid-diagram-wrapper');
+        const mermaidDiagram = document.getElementById('mermaid-diagram');
+        const renderBtn = document.getElementById('render-btn');
+        const downloadPngBtn = document.getElementById('download-png-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const resetZoomBtn = document.getElementById('reset-zoom-btn');
+        const zoomLevelSpan = document.getElementById('zoom-level');
+        const zoomSlider = document.getElementById('zoom-slider');
+
+        // State
+        let currentZoom = 1.0;
+        const ZOOM_STEP = 0.1;
+
+        // --- Functions ---
+
+        const wrapText = (text, maxLength) => {
+            const words = text.split(' ');
+            let currentLine = '';
+            const lines = [];
+            for (const word of words) {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const strippedTestLine = testLine.replace(/<[^>]*>/g, '');
+                if (strippedTestLine.length > maxLength) {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines.join('<br>');
+        };
+
+        const autoWrapDiagramText = (diagramCode, maxLength = 30) => {
+            const processContent = (content) => {
+                let processedContent = content.replace(/(?<=\S)\s*\(/g, '<br>(');
+                const manualLines = processedContent.split(/<br\s*\/?>/i);
+                const wrappedLines = manualLines.map(line => wrapText(line, maxLength));
+                return wrappedLines.join('<br>');
+            };
+
+            const nodeRegex = /(\w+\s*(?:\["|\("|\("))(.*?)((?:"\]|"\)|"\)))/g;
+            const linkRegex = /(---|--|-\.-|-\.->|-->|<--|-\.->|===|=.=>|==>)\s*"(.*?)"\s*(---|--|-\.-|-\.->|-->|<--|-\.->|===|=.=>|==>)/g;
+            const subgraphRegex = /(subgraph\s+")(.*?)"/g;
+            
+            let processedCode = diagramCode.replace(nodeRegex, (match, start, content, end) => {
+                return `${start}${processContent(content)}${end}`;
+            });
+
+            processedCode = processedCode.replace(linkRegex, (match, start, content, end) => {
+                return `${start}"${processContent(content)}"${end}`;
+            });
+
+            processedCode = processedCode.replace(subgraphRegex, (match, start, content) => {
+                return `${start}${processContent(content)}"`;
+            });
+
+            return processedCode;
+        };
+
+        const loadInitialData = () => {
+            const initialData = document.getElementById('initial-diagram-data').textContent.trim();
+            diagramSourceTextarea.value = initialData;
+            renderDiagram();
+        };
+
+        const updateZoomDisplay = () => {
+            diagramWrapper.style.transform = `scale(${currentZoom})`;
+            const percentage = Math.round(currentZoom * 100);
+            zoomLevelSpan.textContent = `${percentage}%`;
+            zoomSlider.value = percentage;
+        };
+
+        const postRenderTweaks = () => {
+            const svg = document.querySelector('#mermaid-diagram svg');
+            if (!svg) return;
+
+            const paths = svg.querySelectorAll('.edgePaths .path');
+            paths.forEach(path => {
+                const strokeColor = window.getComputedStyle(path).stroke;
+                const markerId = path.getAttribute('marker-end');
+                if (markerId) {
+                    const marker = svg.querySelector(markerId.replace(/url\("(.*)"\)/, '$1'));
+                    if (marker) {
+                        marker.querySelector('path').style.stroke = strokeColor;
+                        marker.querySelector('path').style.fill = 'none';
+                    }
+                }
+            });
+
+            const textElements = svg.querySelectorAll('.nodeLabel, .edgeLabel, .subgraph-title');
+            textElements.forEach(el => {
+                el.parentNode.appendChild(el);
+            });
+        };
+
+        const renderDiagram = async () => {
+            try {
+                let diagramCode = diagramSourceTextarea.value;
+                diagramCode = autoWrapDiagramText(diagramCode);
+                
+                const { svg } = await mermaid.render('mermaid-graph', diagramCode);
+                mermaidDiagram.innerHTML = svg;
+
+                setTimeout(postRenderTweaks, 0);
+                
+                currentZoom = 1.0;
+                updateZoomDisplay();
+
+            } catch (e) {
+                mermaidDiagram.innerHTML = `<div class="text-red-500 p-4"><strong>图表渲染错误:</strong><br><pre class="whitespace-pre-wrap">${e.message}</pre></div>`;
+                console.error(e);
+            }
+        };
+
+        const getSvgDataForExport = () => {
+            const svgElement = document.querySelector('#mermaid-diagram svg');
+            if (!svgElement) return null;
+
+            const clonedSvg = svgElement.cloneNode(true);
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `text, tspan { font-family: "Times New Roman", Times, serif !important; }`;
+            clonedSvg.prepend(styleEl);
+
+            const bbox = svgElement.getBBox();
+            clonedSvg.setAttribute('width', bbox.width);
+            clonedSvg.setAttribute('height', bbox.height);
+            clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+
+            const elements = clonedSvg.querySelectorAll('*');
+            elements.forEach(el => {
+                const computedStyle = window.getComputedStyle(el);
+                let styleString = el.getAttribute('style') || '';
+                const essentialProps = ['fill', 'stroke', 'stroke-width', 'font-size', 'font-weight', 'opacity', 'stroke-dasharray'];
+                essentialProps.forEach(prop => {
+                     if(!el.style[prop]) {
+                        styleString += `${prop}:${computedStyle.getPropertyValue(prop)};`;
+                     }
+                });
+                if (styleString) {
+                    el.setAttribute('style', styleString);
+                }
+            });
+
+            return {
+                svgString: new XMLSerializer().serializeToString(clonedSvg),
+                width: bbox.width,
+                height: bbox.height
+            };
+        };
+
+        const downloadPNG = () => {
+            const exportData = getSvgDataForExport();
+            if (!exportData) {
+                alert('请先渲染一个图表后再下载！');
+                return;
+            }
+
+            const { svgString, width, height } = exportData;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                const scale = 3;
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'diagram.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        };
+
+        // --- Event Listeners ---
+
+        renderBtn.addEventListener('click', renderDiagram);
+        downloadPngBtn.addEventListener('click', downloadPNG);
+
+        zoomInBtn.addEventListener('click', () => {
+            currentZoom = Math.min(5.0, currentZoom + ZOOM_STEP);
+            updateZoomDisplay();
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            currentZoom = Math.max(0.1, currentZoom - ZOOM_STEP);
+            updateZoomDisplay();
+        });
+
+        resetZoomBtn.addEventListener('click', () => {
+            currentZoom = 1.0;
+            updateZoomDisplay();
+        });
+
+        zoomSlider.addEventListener('input', () => {
+            currentZoom = zoomSlider.value / 100;
+            updateZoomDisplay();
+        });
+
+        window.addEventListener('load', () => {
+            loadInitialData();
+        });
+    </script>
+</body>
+</html>
