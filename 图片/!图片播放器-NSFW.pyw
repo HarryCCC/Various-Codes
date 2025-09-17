@@ -306,8 +306,8 @@ def calculate_initial_geometry(image_files: list) -> str:
     if target_w < 200 or target_h < 200:
         target_w, target_h = 400, 300
 
-    x_pos = 50
-    taskbar_height_estimate = 80
+    x_pos = 5
+    taskbar_height_estimate = 50
     y_pos = screen_height - target_h - taskbar_height_estimate
     
     if y_pos < 50:
