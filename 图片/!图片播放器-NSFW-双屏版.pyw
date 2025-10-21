@@ -2,14 +2,13 @@
 
 """
 高级图片播放器 (双屏同步版)
-版本 6.1.8 (终极防崩溃修复版 - 逻辑优化版):
-- [修复] 诊断: 核心问题是 Tkinter 的一个经典时序竞争 (Race Condition)。
-           当用新字典替换`self.photo_references`时，旧的 PhotoImage 对象可能在 Label 组件更新前被垃圾回收，导致 `image "pyimageX" doesn't exist` 错误。
-- [修复] 解决方案: 调整 `update_image_display` 函数的逻辑。不再“原子交换”整个引用字典。
-           而是先将新创建的 PhotoImage 对象配置给 Label 组件，再更新 `self.photo_references` 中的引用。
-           这确保了在旧引用被覆盖前，组件已持有对新图像的有效引用。
-- [效果] 此逻辑彻底消除了垃圾回收与组件更新之间的竞争条件，从根本上解决了 `_tkinter.TclError` 崩溃问题。
-- [优化] 简化了 `main` 函数和 `calculate_initial_geometry`，避免创建和销毁多个临时的 Tkinter 根窗口。
+版本 6.5.0 (任务栏启动图标修复版):
+- [修复] 解决了程序启动时任务栏不显示图标的问题。
+- [方案] 不再使用 withdraw() 方法隐藏主窗口，而是将其移动到屏幕外。这能确保操作系统从一开始就为其注册一个任务栏图标。
+- [重构] 采用主从窗口架构，从根本上解决了无边框窗口无法在任务栏常驻图标的问题。
+           - 创建一个隐藏的Tk()主窗口作为任务栏图标的“所有者”。
+           - 将播放器界面放在一个无边框的Toplevel()窗口中。
+- [修复] 最小化功能现在能正确地将应用图标显示在任务栏，并能从任务栏恢复。
 - 左侧目录: D:/GAMES/ComfyUI-aki/ComfyUI-aki-v1.6/ComfyUI/output/GreatAsFuck
 - 右侧目录: C:/Users/Administrator/Desktop/ALBUM/PORTRAIT/Miyeon
 """
@@ -41,8 +40,9 @@ except ImportError:
 class AdvancedImagePlayer:
     TITLE_BAR_HOVER_HEIGHT = 40
 
-    def __init__(self, root, image_files_left, image_files_right, initial_geometry):
-        self.root = root
+    def __init__(self, root, master, image_files_left, image_files_right, initial_geometry):
+        self.root = root  # 这是 Toplevel 播放器窗口
+        self.master = master  # 这是隐藏的 Tk() 主窗口，用于控制任务栏图标
         self.image_files_left = image_files_left
         self.image_files_right = image_files_right
         self.current_index = -1
@@ -62,6 +62,7 @@ class AdvancedImagePlayer:
             'right_bg': None, 'right_fg': None
         }
 
+        self.master.title("图片播放器 (双屏版)") # 为任务栏设置标题
         self.root.title("图片播放器 (双屏版)")
         self.root.configure(bg='black')
         
@@ -93,6 +94,7 @@ class AdvancedImagePlayer:
         self.pin_button.config(fg='cyan')
 
         # --- 事件绑定 ---
+        self.master.bind("<Map>", self.on_restore_from_minimize) # 绑定到主窗口的恢复事件
         self.root.bind("<Escape>", self.on_escape)
         self.root.bind("<Configure>", self.on_configure)
         self.root.bind("<space>", self.toggle_fullscreen)
@@ -116,7 +118,7 @@ class AdvancedImagePlayer:
             self.on_close()
 
     def on_configure(self, event):
-        if not self.is_fullscreen:
+        if not self.is_fullscreen and self.root.winfo_viewable():
             self.windowed_geometry = self.root.geometry()
         if self.resize_job:
             self.root.after_cancel(self.resize_job)
@@ -279,7 +281,9 @@ class AdvancedImagePlayer:
         self.is_fullscreen = not self.is_fullscreen
         
         if self.is_fullscreen:
-            self.windowed_geometry = self.root.geometry()
+            # 进入全屏前，如果窗口可见，则保存当前几何信息
+            if self.root.winfo_viewable():
+                self.windowed_geometry = self.root.geometry()
             self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
             self.fullscreen_button.config(text='◱')
             self.grip_corner_se.place_forget()
@@ -297,8 +301,18 @@ class AdvancedImagePlayer:
         if self.after_id:
             self.root.after_cancel(self.after_id)
             self.after_id = None
-        self.root.destroy()
+        self.master.destroy() # 销毁主窗口，Toplevel子窗口也会被一并销毁
+
+    def minimize_window(self, event=None):
+        """最小化窗口到任务栏"""
+        self.root.withdraw()
+        self.master.iconify()
         
+    def on_restore_from_minimize(self, event=None):
+        """当窗口从最小化状态恢复时调用"""
+        self.root.deiconify()
+        self.root.attributes('-topmost', self.is_pinned)
+
     def manual_next_image(self, event=None):
         if self.after_id:
             self.root.after_cancel(self.after_id)
@@ -308,10 +322,17 @@ class AdvancedImagePlayer:
         self.title_bar = tk.Frame(self.root, bg='#282828', height=30)
         self.title_bar.place(x=0, y=0, relwidth=1, height=30)
 
+        # 按钮从右向左依次排列
         close_button = tk.Button(self.title_bar, text='✕', bg='#282828', fg='white', relief='flat', command=self.on_close, width=4)
         close_button.pack(side='right')
+
         self.fullscreen_button = tk.Button(self.title_bar, text='⛶', bg='#282828', fg='white', relief='flat', command=self.toggle_fullscreen, width=4)
         self.fullscreen_button.pack(side='right')
+        
+        # 新增的最小化按钮
+        minimize_button = tk.Button(self.title_bar, text='—', bg='#282828', fg='white', relief='flat', command=self.minimize_window, width=4)
+        minimize_button.pack(side='right')
+
         self.pin_button = tk.Button(self.title_bar, text='📌', bg='#282828', fg='white', relief='flat', command=self.toggle_pin, width=4)
         self.pin_button.pack(side='right')
         
@@ -415,13 +436,15 @@ def calculate_initial_geometry(root, all_image_files: list) -> str:
     return f"{target_w}x{target_h}+{x_pos}+{max(5, y_pos)}"
 
 def main():
-    app_root = tk.Tk()
-    app_root.withdraw()
+    master_root = tk.Tk()
+    # 将主窗口移出屏幕以隐藏它，同时保留其在任务栏上的图标。
+    # 这是比 withdraw() 更可靠的方法，能确保任务栏图标从一开始就存在。
+    master_root.geometry("+9999+9999")
 
     for path in [LEFT_IMAGE_DIR, RIGHT_IMAGE_DIR]:
         if not os.path.isdir(path):
             messagebox.showerror("目录错误", f"图片目录不存在或无效:\n{path}")
-            app_root.destroy()
+            master_root.destroy()
             return
 
     image_files_left = sorted([os.path.join(LEFT_IMAGE_DIR, f) for f in os.listdir(LEFT_IMAGE_DIR) if f.lower().endswith(SUPPORTED_EXTENSIONS)])
@@ -431,14 +454,18 @@ def main():
 
     if not image_files_left and not image_files_right:
         messagebox.showwarning("未找到图片", "在指定的两个目录中均未找到任何支持的图片文件。")
-        app_root.destroy()
+        master_root.destroy()
         return
 
-    initial_geometry = calculate_initial_geometry(app_root, image_files_left + image_files_right)
-    # app_root 现在可以正式成为主窗口，而不是销毁它再建一个
-    player = AdvancedImagePlayer(app_root, image_files_left, image_files_right, initial_geometry)
-    app_root.deiconify() # 显示窗口
-    app_root.mainloop()
+    # 创建实际的播放器窗口，作为隐藏主窗口的子窗口
+    player_window = tk.Toplevel(master_root)
+
+    initial_geometry = calculate_initial_geometry(master_root, image_files_left + image_files_right)
+    
+    player = AdvancedImagePlayer(player_window, master_root, image_files_left, image_files_right, initial_geometry)
+    
+    master_root.mainloop()
 
 if __name__ == "__main__":
     main()
+
