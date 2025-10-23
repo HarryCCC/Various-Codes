@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mermaid 图表编辑器与下载器 (已修复)</title>
+    <title>Mermaid 图表编辑器与下载器 (已优化)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         body, textarea {
             font-family: "Times New Roman", Times, serif;
         }
+        /* -- 优化点 -- */
+        /* 1. 移除了默认的 grab 和 user-select: none 样式, 允许默认情况下的文本选择 */
+        /* 2. JS 将根据 Ctrl 键的状态动态添加/移除相关样式 */
+        #mermaid-container {
+            overflow: hidden;
+            /* cursor: grab; (由JS控制) */
+            /* user-select: none; (由JS控制) */
+        }
         #mermaid-diagram-wrapper {
-            transition: transform 0.2s ease-in-out;
-            transform-origin: center center;
+            transform-origin: 0 0;
         }
         /* Custom styles for the range slider */
         input[type=range] {
@@ -72,17 +79,22 @@
             <!-- Right side: Diagram Visualization -->
             <div>
                 <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-xl font-semibold text-gray-700">可视化预览</h2>
+                    <!-- -- 优化点 1: 添加操作说明 -- -->
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-semibold text-gray-700">可视化预览</h2>
+                        <span class="text-xs text-gray-500 font-normal">(按住 Ctrl 并拖动鼠标可平移画布)</span>
+                    </div>
                     <div class="flex items-center gap-2">
                         <button id="zoom-out-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">-</button>
-                        <input type="range" id="zoom-slider" min="50" max="300" value="100" class="w-24">
+                        <!-- -- 优化点: 调整滑块范围 -- -->
+                        <input type="range" id="zoom-slider" min="50" max="1000" value="100" class="w-24">
                         <button id="zoom-in-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">+</button>
                         <span id="zoom-level" class="text-sm text-gray-600 w-12 text-center">100%</span>
                         <button id="reset-zoom-btn" class="text-sm text-gray-600 hover:text-black transition ml-2">重置</button>
                     </div>
                 </div>
                 <!-- Mermaid Diagram Container -->
-                <div id="mermaid-container" class="mermaid-container border rounded-lg p-4 bg-gray-50 min-h-[408px] flex items-center justify-center overflow-auto">
+                <div id="mermaid-container" class="mermaid-container border rounded-lg p-4 bg-gray-50 min-h-[408px] flex items-center justify-center">
                     <div id="mermaid-diagram-wrapper">
                          <div id="mermaid-diagram"></div>
                     </div>
@@ -91,79 +103,174 @@
         </div>
     </div>
 
+
     <!-- Isolated Mermaid Diagram Data for reusability -->
     <div id="initial-diagram-data" style="display: none;">
 <pre>
 graph TD
-    subgraph "用户端"
-        U1["中矿国链专家用户 Web浏览器<br>SPA"]
-    end
+    %% Styling
+    classDef noteStyle fill:#fefcea,stroke:#f0c420,stroke-width:1px,color:#333
+    style A fill:#228B22,stroke:#333,stroke-width:2px,color:#fff
+    style AJ fill:#DC143C,stroke:#333,stroke-width:2px,color:#fff
 
-    subgraph "云端核心平台"
-        API_GW["API 网关"]
+    A[开始]
 
-        subgraph "AI与优化服务 (可拓展)"
-            Agent["交互式智能体 (Agent)"]
-            LLM["大语言模型 (LLM) 服务"]
+    subgraph 第一阶段 销售合同编辑
+        subgraph " "
+            direction LR
+            B("询问物流获取货代信息");
+            B_note("注: 连云港以北问王诗杨,<br>以南问周羽");
         end
-
-        subgraph "核心与可拓展服务"
-            OptEngine["核心优化引擎<br>(分层优化模型)"]
-            DataService["数据管理服务"]
-            ReportService["报告生成服务"]
-            UserService["用户服务"]
-            PriceService["价格换算服务 (可拓展)"]
-            CarbonService["碳排放计算服务 (可拓展)"]
-            TrackingService["计划追踪服务 (可拓展)"]
+        subgraph " "
+            direction LR
+            C("根据销售报告登记台账");
+            C_note("注: 登记到“自营内贸”台账");
         end
-
-        subgraph "持久化层"
-            DBs["混合数据库<br>- 关系型, 文档型, 时序型"]
+        subgraph " "
+            direction LR
+            D("编辑销售合同");
+            D_note("注: 税率13%, 有效期1年, 免堆期30天");
         end
-        
-        %% 内部数据流 %%
-        API_GW --> Agent & UserService & ReportService & OptEngine
-        Agent --> LLM & OptEngine & DataService & TrackingService & CarbonService & PriceService
-        OptEngine --> DataService
-        TrackingService --> DataService
-        CarbonService --> DataService
-        UserService --> DBs
-        DataService --> DBs
-        ReportService --> DBs
-
-        %% 定义一个不可见的连接枢纽 %%
-        CloudHub[" "]
-        style CloudHub fill:none,stroke:none
-
-        %% 将所有出站连接汇集到枢纽 %%
-        DataService --> CloudHub
-        LLM --> CloudHub
-    end
-
-    subgraph "外部数据源"
-        MarketData["市场行情数据<br>(Mysteel, SMM等)"]
-        News["行业新闻/政策报告"]
+        subgraph " "
+            direction LR
+            E("根据台账填写标准合同文本");
+            E_note("注: 每次修改需重选价格类型,<br>签约地/被告方/空格不填,<br>多次保存以同步附件");
+        end
+        subgraph " "
+            direction LR
+            F{"合同单签"};
+            F_note("注: 确认结算/收款说明");
+        end
+        G(上传双签版本并签约)
     end
     
-    subgraph "客户本地/私有云"
-        Gateway["安全数据网关"]
-        subgraph "客户现有系统"
-            MES["制造执行系统"]
-            ERP["企业资源计划"]
-            Inventory["实时库存系统"]
+    subgraph 第二阶段 放货
+        subgraph " "
+            direction LR
+            H("通知客户并获取提货人信息");
+            H_note("注: 发送COA和货代信息");
         end
+        subgraph " "
+            direction LR
+            I("登记台账");
+            I_note("注: 登记到“自营内贸”台账");
+        end
+        subgraph " "
+            direction LR
+            J("应收款预分配");
+            J_note("注: 应收大类(贸易), 细类(国内销售),<br>截图发内贸业财沟通群记账");
+        end
+        subgraph " "
+            direction LR
+            K("制作出仓通知单");
+            K_note("注: 仔细核对合同号/港口/提货人等信息");
+        end
+        L(客户确认通知单)
+        subgraph " "
+            direction LR
+            M("创建销售订单");
+            M_note("注: 确认提dan/提运/收款方式,<br>仓库=发货地=交货地(港口)");
+        end
+        subgraph " "
+            direction LR
+            N("创建销售交单");
+            N_note("注: 需电子签章, 备注信息, 上传附件");
+        end
+        subgraph " "
+            direction LR
+            O("国链单签后发给相关方执行");
+            O_note("注: 青岛董家口港需打印线下办理");
+        end
+        P{客户是否要求开首款发票?}
+        subgraph " "
+            direction LR
+            Q("预开80%金额首款发票");
+            Q_note("注: 备注合同号/船名/Fe含量,<br>开票数量为总数80%");
+        end
+        R(进入结算流程)
     end
     
-    %% 从用户端到云端核心 %%
-    U1 -- "HTTPS / RESTful API" --> API_GW
+    subgraph 第三阶段 结算
+        subgraph " "
+            direction LR
+            S("客户提货后, 获取磅单");
+            S_note("注: 主动向物流或货代确认");
+        end
+        T(登记台账)
+        subgraph " "
+            direction LR
+            U("制作结算单");
+            U_note("注: 核对实提数及买卖双方信息");
+        end
+        V(客户确认并单签结算单)
+        subgraph " "
+            direction LR
+            W("系统内实提调整");
+            W_note("注: 调整为实际出库数量, 自行审批");
+        end
+        subgraph " "
+            direction LR
+            X("销售结算流程");
+            X_note("注: 确认收款方式及业务类型");
+        end
+        Y(上传结算单+磅单)
+        Z(获取双签结算单并发送客户)
+    end
+    
+    subgraph 第四阶段 开票与退款
+        subgraph " "
+            direction LR
+            AA("申请开具尾款/全款发票");
+            AA_note("注: 同时选中首/尾款,<br>统一税收编号");
+        end
+        subgraph " "
+            direction LR
+            AB("将双签结算单发给财务");
+            AB_note("注: 申请首款发票无需双签结算单");
+        end
+        AC{发票草本客户是否确认?}
+        AD{客户是否需补款?}
+        subgraph " "
+            direction LR
+            AE("等待补款");
+            AE_note("注: 需等客户补款后再开发票");
+        end
+        AF(开具发票)
+        AG{是否需要退款?}
+        subgraph " "
+            direction LR
+            AH("提交退款申请");
+            AH_note("注: 需附上双签结算单");
+        end
+        subgraph " "
+            direction LR
+            AI("打印退款单给财务");
+            AI_note("注: 需打印退款单+双签结算单");
+        end
+    end
 
-    %% 从云端核心枢纽到外部 %%
-    CloudHub -- "API" --> MarketData
-    CloudHub -- "分析" --> News
-    CloudHub -- "加密通道" --> Gateway
+    AJ[结束]
 
-    %% 从客户网关到内部系统 %%
-    Gateway -- "安全对接" --> MES & ERP & Inventory
+    %% Connections
+    A-->B; B-->C; C-->D; D-->E; E-->F; F-->G; 
+    G-->H; H-->I; I-->J; J-->K; K-->L; L-->M; M-->N; N-->O; O-->P;
+    P--是-->Q;
+    P--否-->R;
+    Q-->R;
+    R-->S; S-->T; T-->U; U-->V; V-->W; W-->X; X-->Y; Y-->Z; 
+    Z-->AA; AA-->AB; AB-->AC;
+    AC--否-->AB;
+    AC--是-->AD;
+    AD--否-->AF;
+    AD--是-->AE; AE-->AF;
+    AF-->AG;
+    AG--否-->AJ;
+    AG--是-->AH; AH-->AI; AI-->AJ;
+
+    %% Apply Note Style
+    class B_note,C_note,D_note,E_note,F_note,H_note,I_note,J_note,K_note,M_note,N_note,O_note,Q_note,S_note,U_note,W_note,X_note,AA_note,AB_note,AE_note,AH_note,AI_note noteStyle;
+
+
 </pre>
     </div>
     
@@ -192,8 +299,16 @@ graph TD
         const zoomLevelSpan = document.getElementById('zoom-level');
         const zoomSlider = document.getElementById('zoom-slider');
 
-        // State
-        let currentZoom = 1.0;
+        // -- 优化点: 调整缩放限制 --
+        let scale = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startPanX = 0;
+        let startPanY = 0;
+        let ctrlPressed = false; // 追踪Ctrl键是否被按下
+        const MIN_SCALE = 0.5; // 下限为 50%
+        // 移除了 MAX_SCALE 常量
         const ZOOM_STEP = 0.1;
 
         // --- Functions ---
@@ -203,10 +318,12 @@ graph TD
             diagramSourceTextarea.value = initialData;
             renderDiagram();
         };
-
-        const updateZoomDisplay = () => {
-            diagramWrapper.style.transform = `scale(${currentZoom})`;
-            const percentage = Math.round(currentZoom * 100);
+        
+        const updateTransform = () => {
+            // -- 优化点: 移除缩放上限 --
+            scale = Math.max(MIN_SCALE, scale);
+            diagramWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            const percentage = Math.round(scale * 100);
             zoomLevelSpan.textContent = `${percentage}%`;
             zoomSlider.value = percentage;
         };
@@ -216,11 +333,10 @@ graph TD
                 const diagramCode = diagramSourceTextarea.value;
                 const { svg } = await mermaid.render('mermaid-graph', diagramCode);
                 mermaidDiagram.innerHTML = svg;
-                
-                // Reset zoom on new render
-                currentZoom = 1.0;
-                updateZoomDisplay();
-
+                scale = 1.0;
+                panX = 0;
+                panY = 0;
+                updateTransform();
             } catch (e) {
                 mermaidDiagram.innerHTML = `<div class="text-red-500 p-4"><strong>图表渲染错误:</strong><br><pre class="whitespace-pre-wrap">${e.message || e}</pre></div>`;
                 console.error(e);
@@ -230,18 +346,14 @@ graph TD
         const getSvgDataForExport = () => {
             const svgElement = document.querySelector('#mermaid-diagram svg');
             if (!svgElement) return null;
-
             const clonedSvg = svgElement.cloneNode(true);
-            
             const styleEl = document.createElement('style');
             styleEl.textContent = `text, tspan { font-family: "Times New Roman", Times, serif !important; }`;
             clonedSvg.prepend(styleEl);
-
             const bbox = svgElement.getBBox();
             clonedSvg.setAttribute('width', bbox.width);
             clonedSvg.setAttribute('height', bbox.height);
             clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-            
             const elements = clonedSvg.querySelectorAll('*');
             elements.forEach(el => {
                 const computedStyle = window.getComputedStyle(el);
@@ -256,7 +368,6 @@ graph TD
                     el.setAttribute('style', styleString);
                 }
             });
-
             return {
                 svgString: new XMLSerializer().serializeToString(clonedSvg),
                 width: bbox.width,
@@ -267,26 +378,20 @@ graph TD
         const downloadPNG = () => {
             const exportData = getSvgDataForExport();
             if (!exportData) {
-                // Replaced alert with console.warn for better compatibility
                 console.warn('请先渲染一个图表后再下载！');
                 return;
             }
-
             const { svgString, width, height } = exportData;
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
-            
             img.onload = () => {
-                const scale = 3; // Render at 3x resolution for high quality
+                const scale = 3;
                 canvas.width = Math.ceil(width * scale);
                 canvas.height = Math.ceil(height * scale);
-                
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
                 const a = document.createElement('a');
                 a.href = canvas.toDataURL('image/png');
                 a.download = 'diagram.png';
@@ -294,44 +399,107 @@ graph TD
                 a.click();
                 document.body.removeChild(a);
             };
-            
             img.onerror = (e) => {
                 console.error("Image loading failed for SVG export.", e);
             }
-            
-            // FIX: Reverted to the more compatible base64 data URL method.
-            // The unescape/encodeURIComponent combo is a classic way to handle UTF-8 characters for btoa.
             img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
         };
 
         // --- Event Listeners ---
-
         renderBtn.addEventListener('click', renderDiagram);
         downloadPngBtn.addEventListener('click', downloadPNG);
 
-        zoomInBtn.addEventListener('click', () => {
-            currentZoom = Math.min(3.0, currentZoom + ZOOM_STEP);
-            updateZoomDisplay();
+        // -- 优化点 2: 新的平移和缩放事件监听器 --
+
+        // 鼠标拖动平移 (仅当 Ctrl 按下时)
+        mermaidContainer.addEventListener('mousedown', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault(); // 阻止文本选择
+                isPanning = true;
+                mermaidContainer.style.userSelect = 'none'; // 平移时禁用选择
+                mermaidContainer.style.cursor = 'grabbing';
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
+            }
         });
 
-        zoomOutBtn.addEventListener('click', () => {
-            currentZoom = Math.max(0.5, currentZoom - ZOOM_STEP);
-            updateZoomDisplay();
+        window.addEventListener('mouseup', (e) => {
+            isPanning = false;
+            mermaidContainer.style.userSelect = 'auto'; // 恢复文本选择
+            // 如果Ctrl键仍被按下，显示可抓取手势，否则恢复默认
+            mermaidContainer.style.cursor = e.ctrlKey ? 'grab' : 'auto';
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            e.preventDefault();
+            panX = e.clientX - startPanX;
+            panY = e.clientY - startPanY;
+            updateTransform();
         });
 
+        // 全局监听按键状态来改变鼠标手势，提供交互反馈
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Control' && !ctrlPressed) {
+                ctrlPressed = true;
+                if (!isPanning) {
+                    mermaidContainer.style.cursor = 'grab';
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Control') {
+                ctrlPressed = false;
+                if (!isPanning) {
+                    mermaidContainer.style.cursor = 'auto';
+                }
+            }
+        });
+
+        // 鼠标滚轮缩放
+        mermaidContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = mermaidContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const pointX = (mouseX - panX) / scale;
+            const pointY = (mouseY - panY) / scale;
+            const delta = e.deltaY < 0 ? 1 : -1;
+            const newScale = scale * (1 + delta * ZOOM_STEP);
+            panX = mouseX - pointX * newScale;
+            panY = mouseY - pointY * newScale;
+            scale = newScale;
+            updateTransform();
+        });
+
+        const zoomToCenter = (newScale) => {
+            const rect = mermaidContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const pointX = (centerX - panX) / scale;
+            const pointY = (centerY - panY) / scale;
+            panX = centerX - pointX * newScale;
+            panY = centerY - pointY * newScale;
+            scale = newScale;
+            updateTransform();
+        };
+
+        zoomInBtn.addEventListener('click', () => zoomToCenter(scale + ZOOM_STEP));
+        zoomOutBtn.addEventListener('click', () => zoomToCenter(scale - ZOOM_STEP));
         resetZoomBtn.addEventListener('click', () => {
-            currentZoom = 1.0;
-            updateZoomDisplay();
+            scale = 1.0;
+            panX = 0;
+            panY = 0;
+            updateTransform();
         });
-
         zoomSlider.addEventListener('input', () => {
-            currentZoom = zoomSlider.value / 100;
-            updateZoomDisplay();
+            const newScale = parseFloat(zoomSlider.value) / 100;
+            zoomToCenter(newScale);
         });
 
-        window.addEventListener('load', () => {
-            loadInitialData();
-        });
+        window.addEventListener('load', loadInitialData);
     </script>
 </body>
 </html>
+
