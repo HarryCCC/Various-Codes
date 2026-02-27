@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid 图表编辑器与下载器 (已优化)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body, textarea {
+            font-family: "Times New Roman", Times, serif;
+        }
+        /* -- 优化点 -- */
+        /* 1. 移除了默认的 grab 和 user-select: none 样式, 允许默认情况下的文本选择 */
+        /* 2. JS 将根据 Ctrl 键的状态动态添加/移除相关样式 */
+        #mermaid-container {
+            overflow: hidden;
+            /* cursor: grab; (由JS控制) */
+            /* user-select: none; (由JS控制) */
+        }
+        #mermaid-diagram-wrapper {
+            transform-origin: 0 0;
+        }
+        /* Custom styles for the range slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        input[type=range]:hover {
+            opacity: 1;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #0284c7; /* sky-600 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #0284c7;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-6xl mx-auto">
+        
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Mermaid 图表工作台</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left side: Editor and Controls -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">图表编辑器</h2>
+                <textarea id="diagram-source" class="w-full h-96 p-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" spellcheck="false"></textarea>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <button id="render-btn" class="flex-1 bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition">
+                        渲染图表
+                    </button>
+                    <button id="download-png-btn" class="flex-1 bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-75 transition">
+                        下载 (PNG)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right side: Diagram Visualization -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <!-- -- 优化点 1: 添加操作说明 -- -->
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-semibold text-gray-700">可视化预览</h2>
+                        <span class="text-xs text-gray-500 font-normal">(按住 Ctrl 并拖动鼠标可平移画布)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="zoom-out-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">-</button>
+                        <!-- -- 优化点: 调整滑块范围 -- -->
+                        <input type="range" id="zoom-slider" min="50" max="1000" value="100" class="w-24">
+                        <button id="zoom-in-btn" class="px-2 py-0.5 rounded-md bg-gray-200 hover:bg-gray-300 transition text-lg font-bold">+</button>
+                        <span id="zoom-level" class="text-sm text-gray-600 w-12 text-center">100%</span>
+                        <button id="reset-zoom-btn" class="text-sm text-gray-600 hover:text-black transition ml-2">重置</button>
+                    </div>
+                </div>
+                <!-- Mermaid Diagram Container -->
+                <div id="mermaid-container" class="mermaid-container border rounded-lg p-4 bg-gray-50 min-h-[408px] flex items-center justify-center">
+                    <div id="mermaid-diagram-wrapper">
+                         <div id="mermaid-diagram"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Isolated Mermaid Diagram Data for reusability -->
+    <div id="initial-diagram-data" style="display: none;">
+<pre>
+%% -- 改良点 --
+%% 提示: 在节点内部的文本很长时, 请手动使用 <br> 标签进行换行, Mermaid 无法自动处理换行。
+%% 例如: A["这是一个非常非常非常非常非常非常非常非常长的节点"] -- 这会被截断
+%% 正确做法: A["这是一个非常非常非常<br>非常非常非常非常长的节点"]
+graph TD
+    subgraph "用户端"
+        U1["中矿国链专家用户 Web浏览器<br>SPA"]
+    end
+
+    subgraph "云端核心平台"
+        API_GW["API 网关"]
+
+        subgraph "AI与优化服务 (可拓展)"
+            Agent["交互式智能体 (Agent)"]
+            LLM["大语言模型 (LLM) 服务"]
+        end
+
+        subgraph "核心与可拓展服务"
+            OptEngine["核心优化引擎<br>(分层优化模型)"]
+            DataService["数据管理服务"]
+            ReportService["报告生成服务"]
+            UserService["用户服务"]
+            PriceService["价格换算服务 (可拓展)"]
+            CarbonService["碳排放计算服务 (可拓展)"]
+            TrackingService["计划追踪服务 (可拓展)"]
+        end
+
+        subgraph "持久化层"
+            DBs["混合数据库<br>- 关系型, 文档型, 时序型"]
+        end
+        
+        %% 内部数据流 %%
+        API_GW --> Agent & UserService & ReportService & OptEngine
+        Agent --> LLM & OptEngine & DataService & TrackingService & CarbonService & PriceService
+        OptEngine --> DataService
+        TrackingService --> DataService
+        CarbonService --> DataService
+        UserService --> DBs
+        DataService --> DBs
+        ReportService --> DBs
+
+        %% 定义一个不可见的连接枢纽 %%
+        CloudHub[" "]
+        style CloudHub fill:none,stroke:none
+
+        %% 将所有出站连接汇集到枢纽 %%
+        DataService --> CloudHub
+        LLM --> CloudHub
+    end
+
+    subgraph "外部数据源"
+        MarketData["市场行情数据<br>(Mysteel, SMM等)"]
+        News["行业新闻/政策报告"]
+    end
+    
+    subgraph "客户本地/私有云"
+        Gateway["安全数据网关"]
+        subgraph "客户现有系统"
+            MES["制造执行系统"]
+            ERP["企业资源计划"]
+            Inventory["实时库存系统"]
+        end
+    end
+    
+    %% 从用户端到云端核心 %%
+    U1 -- "HTTPS / RESTful API" --> API_GW
+
+    %% 从云端核心枢纽到外部 %%
+    CloudHub -- "API" --> MarketData
+    CloudHub -- "分析" --> News
+    CloudHub -- "加密通道" --> Gateway
+
+    %% 从客户网关到内部系统 %%
+    Gateway -- "安全对接" --> MES & ERP & Inventory
+    
+</pre>
+    </div>
+    
+    <script>
+        // Initialize Mermaid.js
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'base',
+            securityLevel: 'loose',
+            fontFamily: '"Times New Roman", Times, serif',
+            themeVariables: {
+                'primaryColor': '#f4f4f5'
+            }
+        });
+
+        // DOM Elements
+        const diagramSourceTextarea = document.getElementById('diagram-source');
+        const mermaidContainer = document.getElementById('mermaid-container');
+        const diagramWrapper = document.getElementById('mermaid-diagram-wrapper');
+        const mermaidDiagram = document.getElementById('mermaid-diagram');
+        const renderBtn = document.getElementById('render-btn');
+        const downloadPngBtn = document.getElementById('download-png-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const resetZoomBtn = document.getElementById('reset-zoom-btn');
+        const zoomLevelSpan = document.getElementById('zoom-level');
+        const zoomSlider = document.getElementById('zoom-slider');
+
+        // -- 优化点: 调整缩放限制 --
+        let scale = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startPanX = 0;
+        let startPanY = 0;
+        let ctrlPressed = false; // 追踪Ctrl键是否被按下
+        const MIN_SCALE = 0.5; // 下限为 50%
+        // 移除了 MAX_SCALE 常量
+        const ZOOM_STEP = 0.1;
+
+        // --- Functions ---
+        
+        const loadInitialData = () => {
+            const initialData = document.getElementById('initial-diagram-data').textContent.trim();
+            diagramSourceTextarea.value = initialData;
+            renderDiagram();
+        };
+        
+        const updateTransform = () => {
+            // -- 优化点: 移除缩放上限 --
+            scale = Math.max(MIN_SCALE, scale);
+            diagramWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            const percentage = Math.round(scale * 100);
+            zoomLevelSpan.textContent = `${percentage}%`;
+            zoomSlider.value = percentage;
+        };
+        
+        const renderDiagram = async () => {
+            try {
+                const diagramCode = diagramSourceTextarea.value;
+                const { svg } = await mermaid.render('mermaid-graph', diagramCode);
+                mermaidDiagram.innerHTML = svg;
+                scale = 1.0;
+                panX = 0;
+                panY = 0;
+                updateTransform();
+            } catch (e) {
+                mermaidDiagram.innerHTML = `<div class="text-red-500 p-4"><strong>图表渲染错误:</strong><br><pre class="whitespace-pre-wrap">${e.message || e}</pre></div>`;
+                console.error(e);
+            }
+        };
+
+        const getSvgDataForExport = () => {
+            const svgElement = document.querySelector('#mermaid-diagram svg');
+            if (!svgElement) return null;
+            const clonedSvg = svgElement.cloneNode(true);
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `text, tspan { font-family: "Times New Roman", Times, serif !important; }`;
+            clonedSvg.prepend(styleEl);
+            const bbox = svgElement.getBBox();
+            clonedSvg.setAttribute('width', bbox.width);
+            clonedSvg.setAttribute('height', bbox.height);
+            clonedSvg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            const elements = clonedSvg.querySelectorAll('*');
+            elements.forEach(el => {
+                const computedStyle = window.getComputedStyle(el);
+                let styleString = el.getAttribute('style') || '';
+                const essentialProps = ['fill', 'stroke', 'stroke-width', 'font-size', 'font-weight', 'opacity', 'stroke-dasharray', 'text-anchor'];
+                essentialProps.forEach(prop => {
+                     if(!el.style[prop]) {
+                        styleString += `${prop}:${computedStyle.getPropertyValue(prop)};`;
+                     }
+                });
+                if (styleString) {
+                    el.setAttribute('style', styleString);
+                }
+            });
+            return {
+                svgString: new XMLSerializer().serializeToString(clonedSvg),
+                width: bbox.width,
+                height: bbox.height
+            };
+        };
+
+        const downloadPNG = () => {
+            const exportData = getSvgDataForExport();
+            if (!exportData) {
+                console.warn('请先渲染一个图表后再下载！');
+                return;
+            }
+            const { svgString, width, height } = exportData;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                const scale = 3;
+                canvas.width = Math.ceil(width * scale);
+                canvas.height = Math.ceil(height * scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'diagram.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            img.onerror = (e) => {
+                console.error("Image loading failed for SVG export.", e);
+            }
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        };
+
+        // --- Event Listeners ---
+        renderBtn.addEventListener('click', renderDiagram);
+        downloadPngBtn.addEventListener('click', downloadPNG);
+
+        // -- 优化点 2: 新的平移和缩放事件监听器 --
+
+        // 鼠标拖动平移 (仅当 Ctrl 按下时)
+        mermaidContainer.addEventListener('mousedown', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault(); // 阻止文本选择
+                isPanning = true;
+                mermaidContainer.style.userSelect = 'none'; // 平移时禁用选择
+                mermaidContainer.style.cursor = 'grabbing';
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            isPanning = false;
+            mermaidContainer.style.userSelect = 'auto'; // 恢复文本选择
+            // 如果Ctrl键仍被按下，显示可抓取手势，否则恢复默认
+            mermaidContainer.style.cursor = e.ctrlKey ? 'grab' : 'auto';
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            e.preventDefault();
+            panX = e.clientX - startPanX;
+            panY = e.clientY - startPanY;
+            updateTransform();
+        });
+
+        // 全局监听按键状态来改变鼠标手势，提供交互反馈
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Control' && !ctrlPressed) {
+                ctrlPressed = true;
+                if (!isPanning) {
+                    mermaidContainer.style.cursor = 'grab';
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Control') {
+                ctrlPressed = false;
+                if (!isPanning) {
+                    mermaidContainer.style.cursor = 'auto';
+                }
+            }
+        });
+
+        // 鼠标滚轮缩放
+        mermaidContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = mermaidContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const pointX = (mouseX - panX) / scale;
+            const pointY = (mouseY - panY) / scale;
+            const delta = e.deltaY < 0 ? 1 : -1;
+            const newScale = scale * (1 + delta * ZOOM_STEP);
+            panX = mouseX - pointX * newScale;
+            panY = mouseY - pointY * newScale;
+            scale = newScale;
+            updateTransform();
+        });
+
+        const zoomToCenter = (newScale) => {
+            const rect = mermaidContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const pointX = (centerX - panX) / scale;
+            const pointY = (centerY - panY) / scale;
+            panX = centerX - pointX * newScale;
+            panY = centerY - pointY * newScale;
+            scale = newScale;
+            updateTransform();
+        };
+
+        zoomInBtn.addEventListener('click', () => zoomToCenter(scale + ZOOM_STEP));
+        zoomOutBtn.addEventListener('click', () => zoomToCenter(scale - ZOOM_STEP));
+        resetZoomBtn.addEventListener('click', () => {
+            scale = 1.0;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        });
+        zoomSlider.addEventListener('input', () => {
+            const newScale = parseFloat(zoomSlider.value) / 100;
+            zoomToCenter(newScale);
+        });
+
+        window.addEventListener('load', loadInitialData);
+    </script>
+</body>
+</html>
+

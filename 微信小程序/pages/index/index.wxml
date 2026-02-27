@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="header">🌿 草本微图鉴</view>
+  
+  <view class="card-list">
+    <block wx:for="{{herbalList}}" wx:key="id">
+      <view class="card" bindtap="goToDetail" data-item="{{item}}">
+        <image class="card-img" src="{{item.image}}" mode="aspectFill"></image>
+        <view class="card-info">
+          <text class="card-title">{{item.name}}</text>
+          <text class="card-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

@@ -1,0 +1,8 @@
+<view class="detail-container">
+  <image class="hero-img" src="{{item.image}}" mode="widthFix"></image>
+  <view class="content">
+    <view class="title">{{item.name}}</view>
+    <view class="line"></view>
+    <view class="description">{{item.detail}}</view>
+  </view>
+</view>

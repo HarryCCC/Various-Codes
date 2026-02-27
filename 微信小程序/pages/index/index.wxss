@@ -1,0 +1,51 @@
+/* pages/index/index.wxss */
+page {
+  background-color: #f4f6f0; /* 淡雅的背景色 */
+}
+
+.container {
+  padding: 20px;
+}
+
+.header {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c5c38; /* 森林绿 */
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  display: flex;
+  height: 100px;
+}
+
+.card-img {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.card-info {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #888;
+}

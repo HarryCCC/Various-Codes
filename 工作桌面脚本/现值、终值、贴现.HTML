@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现值与贴现计算器 (PV & NPV)</title>
+    <!-- Tailwind CSS for rapid styling without external stylesheets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+        }
+        .input-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        /* Custom scrollbar for tables */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-slate-800 text-white p-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold"><i class="fa-solid fa-calculator mr-2"></i>现值与贴现分析工具</h1>
+                <p class="text-slate-400 text-sm mt-1">快速计算 TVM、NPV 及折现因子</p>
+            </div>
+            <button onclick="window.print()" class="text-slate-300 hover:text-white transition">
+                <i class="fa-solid fa-print text-xl"></i>
+            </button>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-gray-200">
+            <button onclick="switchTab('single')" id="tab-single" class="tab-btn active flex-1 py-4 text-center text-gray-500 hover:text-gray-700 transition">
+                单笔资金 (TVM)
+            </button>
+            <button onclick="switchTab('flow')" id="tab-flow" class="tab-btn flex-1 py-4 text-center text-gray-500 hover:text-gray-700 transition">
+                多期现金流 (NPV/DCF)
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-6">
+
+            <!-- TAB 1: Single Sum (PV/FV) -->
+            <div id="content-single" class="block">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Inputs -->
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                            <h3 class="font-bold text-blue-800 mb-2">计算目标</h3>
+                            <div class="flex gap-4">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="calcTarget" value="pv" checked onchange="toggleSingleMode()" class="mr-2 w-4 h-4 text-blue-600">
+                                    <span>计算现值 (PV)</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="calcTarget" value="fv" onchange="toggleSingleMode()" class="mr-2 w-4 h-4 text-blue-600">
+                                    <span>计算终值 (FV)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label id="lbl-amount">未来金额 (FV)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-400">¥</span>
+                                <input type="number" id="single-amount" class="input-field pl-8" placeholder="例如: 10000" oninput="calculateSingle()">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>年折现率 / 利率 (%)</label>
+                            <div class="relative">
+                                <input type="number" id="single-rate" class="input-field pr-8" placeholder="例如: 5" step="0.01" oninput="calculateSingle()">
+                                <span class="absolute right-3 top-2 text-gray-400">%</span>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>期数 (年)</label>
+                            <input type="number" id="single-years" class="input-field" placeholder="例如: 3" step="0.5" oninput="calculateSingle()">
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="bg-slate-50 rounded-lg p-6 flex flex-col justify-center items-center text-center border border-slate-200">
+                        <h3 class="text-gray-500 font-medium mb-2" id="result-label">现值 (Present Value)</h3>
+                        <div class="text-4xl font-bold text-emerald-600 mb-2" id="single-result">¥ 0.00</div>
+                        <div class="text-sm text-gray-400 mt-4 bg-white px-3 py-1 rounded border border-gray-100 shadow-sm">
+                            <p>公式: <span id="formula-display" class="font-mono text-gray-600">PV = FV / (1 + r)^n</span></p>
+                        </div>
+                        <div id="single-summary" class="mt-6 text-sm text-gray-600 text-left w-full space-y-1">
+                            <!-- JS populates details here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Cash Flow (NPV) -->
+            <div id="content-flow" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Left: Parameters & Controls -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                            <div class="input-group mb-3">
+                                <label>折现率 (WACC/Required Rate) %</label>
+                                <input type="number" id="cf-rate" class="input-field" value="8" step="0.1" oninput="calculateNPV()">
+                            </div>
+                            <div class="input-group">
+                                <label>初始投资 (第0年支出)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-gray-400">-</span>
+                                    <input type="number" id="cf-initial" class="input-field pl-6 text-red-600 font-medium" value="10000" oninput="calculateNPV()">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">输入正数，系统自动按负流出处理</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="addYear()" class="flex-1 bg-white border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 transition shadow-sm">
+                                <i class="fa-solid fa-plus mr-1"></i> 添加一年
+                            </button>
+                            <button onclick="resetFlows()" class="px-4 bg-red-50 border border-red-200 text-red-600 rounded hover:bg-red-100 transition">
+                                重置
+                            </button>
+                        </div>
+
+                        <!-- Summary Card (Mobile optimized position) -->
+                        <div class="bg-slate-800 text-white p-5 rounded-lg shadow-md mt-4">
+                            <div class="text-slate-400 text-xs uppercase tracking-wider mb-1">净现值 (NPV)</div>
+                            <div class="text-3xl font-bold text-emerald-400" id="npv-result">¥ 0.00</div>
+                            <div class="mt-4 pt-4 border-t border-slate-700 grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <div class="text-slate-400">总名义回报</div>
+                                    <div id="total-nominal" class="font-mono">¥ 0.00</div>
+                                </div>
+                                <div>
+                                    <div class="text-slate-400">获利指数 (PI)</div>
+                                    <div id="pi-result" class="font-mono text-blue-300">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Cash Flow Table -->
+                    <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+                        <div class="p-3 bg-gray-50 border-b border-gray-200 font-semibold text-gray-700 flex justify-between">
+                            <span>现金流明细表</span>
+                            <span class="text-xs font-normal text-gray-500 self-center">自动计算折现因子</span>
+                        </div>
+                        <div class="overflow-y-auto custom-scroll flex-1" style="max-height: 500px;">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-gray-50 text-gray-500 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-3 font-medium">年份</th>
+                                        <th class="p-3 font-medium">现金流 (CF)</th>
+                                        <th class="p-3 font-medium text-right">折现因子</th>
+                                        <th class="p-3 font-medium text-right">现值 (PV)</th>
+                                        <th class="p-3 text-center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cf-table-body" class="divide-y divide-gray-100">
+                                    <!-- Rows generated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empty-state" class="p-8 text-center text-gray-400 hidden">
+                            点击左侧“添加一年”开始构建模型
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- Footer -->
+        <footer class="bg-gray-100 p-4 text-center text-xs text-gray-500 border-t border-gray-200">
+            &copy; 2025 FinanceCalc Pro - 本地计算，数据不上传
+        </footer>
+    </div>
+
+<script>
+    // --- Utilities ---
+    const formatCurrency = (num) => {
+        return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY' }).format(num);
+    };
+
+    const formatNumber = (num, decimals = 2) => {
+        return num.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    };
+
+    // --- Tab Handling ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        
+        document.getElementById('content-single').classList.add('hidden');
+        document.getElementById('content-flow').classList.add('hidden');
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+    }
+
+    // --- Module 1: Single Sum Logic ---
+    function toggleSingleMode() {
+        const mode = document.querySelector('input[name="calcTarget"]:checked').value;
+        const lblAmount = document.getElementById('lbl-amount');
+        const lblResult = document.getElementById('result-label');
+        const formulaDisplay = document.getElementById('formula-display');
+
+        if (mode === 'pv') {
+            lblAmount.textContent = "未来金额 (FV)";
+            lblResult.textContent = "现值 (Present Value)";
+            formulaDisplay.textContent = "PV = FV / (1 + r)^n";
+        } else {
+            lblAmount.textContent = "当前金额 (PV)";
+            lblResult.textContent = "终值 (Future Value)";
+            formulaDisplay.textContent = "FV = PV × (1 + r)^n";
+        }
+        calculateSingle();
+    }
+
+    function calculateSingle() {
+        const mode = document.querySelector('input[name="calcTarget"]:checked').value;
+        const amount = parseFloat(document.getElementById('single-amount').value) || 0;
+        const rate = parseFloat(document.getElementById('single-rate').value) || 0;
+        const years = parseFloat(document.getElementById('single-years').value) || 0;
+        
+        const r = rate / 100;
+        let result = 0;
+        let detailHtml = '';
+
+        if (mode === 'pv') {
+            // PV = FV / (1+r)^n
+            const discountFactor = Math.pow(1 + r, years);
+            result = amount / discountFactor;
+            
+            detailHtml = `
+                <div class="flex justify-between"><span>未来价值:</span> <span class="font-mono">${formatCurrency(amount)}</span></div>
+                <div class="flex justify-between"><span>折现因子:</span> <span class="font-mono text-blue-600">${formatNumber(1/discountFactor, 4)}</span></div>
+                <div class="flex justify-between border-t border-gray-200 pt-1 mt-1 font-semibold text-gray-800"><span>贴现利息:</span> <span>${formatCurrency(amount - result)}</span></div>
+            `;
+        } else {
+            // FV = PV * (1+r)^n
+            const compoundFactor = Math.pow(1 + r, years);
+            result = amount * compoundFactor;
+
+            detailHtml = `
+                <div class="flex justify-between"><span>初始本金:</span> <span class="font-mono">${formatCurrency(amount)}</span></div>
+                <div class="flex justify-between"><span>复利因子:</span> <span class="font-mono text-blue-600">${formatNumber(compoundFactor, 4)}</span></div>
+                <div class="flex justify-between border-t border-gray-200 pt-1 mt-1 font-semibold text-gray-800"><span>总利息:</span> <span>${formatCurrency(result - amount)}</span></div>
+            `;
+        }
+
+        document.getElementById('single-result').textContent = formatCurrency(result);
+        document.getElementById('single-summary').innerHTML = detailHtml;
+    }
+
+    // --- Module 2: Cash Flow Logic ---
+    let cashFlows = [
+        { year: 1, amount: 1000 },
+        { year: 2, amount: 2000 },
+        { year: 3, amount: 3000 }
+    ];
+
+    function initCashFlows() {
+        renderFlowTable();
+        calculateNPV();
+    }
+
+    function addYear() {
+        const nextYear = cashFlows.length + 1;
+        // Default to same as previous year for quick entry
+        const prevAmount = cashFlows.length > 0 ? cashFlows[cashFlows.length-1].amount : 0;
+        cashFlows.push({ year: nextYear, amount: prevAmount });
+        renderFlowTable();
+        calculateNPV();
+    }
+
+    function removeYear(index) {
+        cashFlows.splice(index, 1);
+        // Re-index years
+        cashFlows = cashFlows.map((cf, idx) => ({ ...cf, year: idx + 1 }));
+        renderFlowTable();
+        calculateNPV();
+    }
+
+    function updateFlowAmount(index, val) {
+        cashFlows[index].amount = parseFloat(val) || 0;
+        calculateNPV();
+    }
+
+    function resetFlows() {
+        document.getElementById('cf-initial').value = 10000;
+        document.getElementById('cf-rate').value = 8;
+        cashFlows = [ { year: 1, amount: 0 } ];
+        renderFlowTable();
+        calculateNPV();
+    }
+
+    function renderFlowTable() {
+        const tbody = document.getElementById('cf-table-body');
+        const rate = (parseFloat(document.getElementById('cf-rate').value) || 0) / 100;
+        tbody.innerHTML = '';
+
+        if (cashFlows.length === 0) {
+            document.getElementById('empty-state').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('empty-state').classList.add('hidden');
+
+        cashFlows.forEach((cf, index) => {
+            const factor = 1 / Math.pow(1 + rate, cf.year);
+            const pv = cf.amount * factor;
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 transition group";
+            tr.innerHTML = `
+                <td class="p-3 text-gray-600 font-mono">Year ${cf.year}</td>
+                <td class="p-3">
+                    <input type="number" 
+                           value="${cf.amount}" 
+                           oninput="updateFlowAmount(${index}, this.value)"
+                           class="w-32 p-1 border border-gray-300 rounded text-sm focus:border-blue-500 focus:outline-none">
+                </td>
+                <td class="p-3 text-right text-gray-400 font-mono text-xs">${formatNumber(factor, 4)}</td>
+                <td class="p-3 text-right font-semibold text-gray-700 font-mono">${formatCurrency(pv)}</td>
+                <td class="p-3 text-center">
+                    <button onclick="removeYear(${index})" class="text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateNPV() {
+        const initialInvestment = parseFloat(document.getElementById('cf-initial').value) || 0;
+        const rate = (parseFloat(document.getElementById('cf-rate').value) || 0) / 100;
+        
+        let totalPV = 0;
+        let totalNominal = 0;
+
+        // Re-calculate table values visually without full re-render (optimization)
+        const rows = document.getElementById('cf-table-body').children;
+        
+        cashFlows.forEach((cf, index) => {
+            const factor = 1 / Math.pow(1 + rate, cf.year);
+            const pv = cf.amount * factor;
+            
+            totalPV += pv;
+            totalNominal += cf.amount;
+
+            // Update table cells strictly if they exist
+            if (rows[index]) {
+                rows[index].children[2].textContent = formatNumber(factor, 4);
+                rows[index].children[3].textContent = formatCurrency(pv);
+            }
+        });
+
+        const npv = totalPV - initialInvestment;
+        
+        // Profitability Index (PI) = PV of Future Cash Flows / Initial Investment
+        const pi = initialInvestment > 0 ? (totalPV / initialInvestment) : 0;
+
+        // Update Summary
+        const npvEl = document.getElementById('npv-result');
+        npvEl.textContent = formatCurrency(npv);
+        npvEl.className = `text-3xl font-bold ${npv >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+        
+        document.getElementById('total-nominal').textContent = formatCurrency(totalNominal - initialInvestment);
+        
+        const piEl = document.getElementById('pi-result');
+        piEl.textContent = pi > 0 ? formatNumber(pi, 2) + "x" : "N/A";
+        // Color code PI
+        if(pi > 1) piEl.className = "font-mono text-emerald-300";
+        else if (pi > 0) piEl.className = "font-mono text-red-300";
+        else piEl.className = "font-mono text-gray-400";
+    }
+
+    // Initialize
+    calculateSingle();
+    initCashFlows();
+
+</script>
+</body>
+</html>

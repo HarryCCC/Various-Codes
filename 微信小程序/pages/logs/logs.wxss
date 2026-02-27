@@ -1,0 +1,29 @@
+/* pages/logs/logs.wxss */
+.detail-container {
+  background: #fff;
+  min-height: 100vh;
+}
+.hero-img {
+  width: 100%;
+  display: block;
+}
+.content {
+  padding: 20px;
+}
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #2c5c38;
+}
+.line {
+  width: 40px;
+  height: 4px;
+  background: #a3c9a8;
+  margin: 10px 0 20px 0;
+}
+.description {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #555;
+  text-align: justify;
+}

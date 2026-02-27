@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简历图标生成器 (独立版)</title>
+    <!-- 引入 Tailwind CSS 进行排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 自定义一些过渡效果 */
+        .icon-card {
+            transition: all 0.3s ease;
+        }
+        .icon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* 颜色选择器的样式优化 */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900 selection:bg-blue-100">
+
+    <div class="max-w-5xl mx-auto px-4 py-10">
+        
+        <!-- 顶部标题区 -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-extrabold text-slate-800 mb-3 tracking-tight">简历模块图标库 <span class="text-blue-600 text-lg align-top bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 font-bold ml-1">HTML 独立版</span></h1>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+                专为简历设计打造的矢量图标库。选择主题色，点击“导出”即可获得 SVG 文件。<br>
+                完美适配 Word、PPT、Markdown 及各类设计软件。
+            </p>
+        </header>
+
+        <!-- 悬浮调色板控制台 -->
+        <div class="sticky top-4 z-50 bg-white/90 backdrop-blur-md border border-slate-200 shadow-lg rounded-2xl p-4 mb-10 transition-all">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- 左侧：标签 -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-slate-100 p-2 rounded-lg text-slate-600">
+                        <i data-lucide="palette" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-800">全局配色控制</h3>
+                        <p class="text-xs text-slate-500">点击色块或输入色值</p>
+                    </div>
+                </div>
+
+                <!-- 中间：预设色板 -->
+                <div class="flex gap-2 flex-wrap justify-center">
+                    <button onclick="updateColor('#2563eb', 'bg-blue-50')" class="color-btn group flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white" title="商务蓝">
+                        <span class="w-4 h-4 rounded-full bg-blue-600"></span>
+                        <span class="text-xs font-medium text-slate-600 group-hover:text-blue-700">商务蓝</span>
+                    </button>
+                    <button onclick="updateColor('#475569', 'bg-slate-100')" class="color-btn group flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 hover:border-slate-500 hover:bg-slate-50 transition-all bg-white" title="雅致灰">
+                        <span class="w-4 h-4 rounded-full bg-slate-600"></span>
+                        <span class="text-xs font-medium text-slate-600 group-hover:text-slate-700">雅致灰</span>
+                    </button>
+                    <button onclick="updateColor('#059669', 'bg-emerald-50')" class="color-btn group flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all bg-white" title="森系绿">
+                        <span class="w-4 h-4 rounded-full bg-emerald-600"></span>
+                        <span class="text-xs font-medium text-slate-600 group-hover:text-emerald-700">森系绿</span>
+                    </button>
+                    <button onclick="updateColor('#27272a', 'bg-zinc-100')" class="color-btn group flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 hover:border-zinc-800 hover:bg-zinc-50 transition-all bg-white" title="高级黑">
+                        <span class="w-4 h-4 rounded-full bg-zinc-800"></span>
+                        <span class="text-xs font-medium text-slate-600 group-hover:text-zinc-900">高级黑</span>
+                    </button>
+                </div>
+
+                <!-- 右侧：自定义取色器 -->
+                <div class="flex items-center gap-3 pl-4 md:border-l border-slate-200">
+                    <label for="customColor" class="text-xs font-bold text-slate-500 uppercase tracking-wider">自定义</label>
+                    <div class="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                        <input type="color" id="customColorPicker" value="#2563eb" oninput="handleCustomColor(this.value)">
+                        <span id="colorHexDisplay" class="text-xs font-mono text-slate-600 min-w-[60px]">#2563EB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图标展示区 (JS 动态生成) -->
+        <div id="icon-container" class="space-y-12">
+            <!-- 内容由 JS 填充 -->
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="mt-16 bg-blue-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
+                <i data-lucide="download" width="200" height="200"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="zap" class="w-5 h-5"></i> 使用指南
+            </h3>
+            <div class="grid md:grid-cols-3 gap-6 text-blue-50 text-sm leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-white mb-2">Word / PPT 用户</h4>
+                    <p>点击“导出”下载 SVG 文件，直接拖入文档。在 Word 中选中图标，点击顶部“图形格式”->“图形填充”，甚至可以二次修改颜色。</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-2">网页 / Markdown</h4>
+                    <p>SVG 是标准矢量代码。你可以用记事本打开下载的文件，复制里面的代码直接粘贴到 HTML 或支持 HTML 标签的 Markdown 编辑器中。</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-2">设计软件</h4>
+                    <p>完美支持 Figma, Adobe Illustrator, Sketch 等矢量设计软件，路径清晰，可无限放大不失真。</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center text-slate-400 text-sm mt-12 mb-4">
+            Generated by Gemini Canvas • Icons by Lucide
+        </footer>
+
+    </div>
+
+    <script>
+        // === 1. 数据定义 ===
+        const categories = [
+            {
+                title: "核心模块 (Core)",
+                icons: [
+                    { icon: "user", label: "个人简介", id: "profile" },
+                    { icon: "briefcase", label: "工作经历", id: "work" },
+                    { icon: "graduation-cap", label: "教育背景", id: "edu" },
+                    { icon: "rocket", label: "项目经验", id: "project" },
+                ]
+            },
+            {
+                title: "能力与荣誉 (Skills & Awards)",
+                icons: [
+                    { icon: "code", label: "专业技能", id: "skills" },
+                    { icon: "star", label: "荣誉奖项", id: "awards" },
+                    { icon: "trophy", label: "竞赛证书", id: "cert" },
+                    { icon: "zap", label: "自我评价", id: "eval" },
+                ]
+            },
+            {
+                title: "联系方式 (Contact)",
+                icons: [
+                    { icon: "phone", label: "电话", id: "phone" },
+                    { icon: "mail", label: "邮箱", id: "email" },
+                    { icon: "map-pin", label: "居住地", id: "location" },
+                    { icon: "globe", label: "个人主页", id: "web" },
+                ]
+            },
+            {
+                title: "其他补充 (Others)",
+                icons: [
+                    { icon: "book-open", label: "兴趣爱好", id: "hobby" },
+                    { icon: "layout", label: "作品集", id: "portfolio" },
+                    { icon: "file-text", label: "附加说明", id: "extra" },
+                    { icon: "compass", label: "职业目标", id: "career" },
+                ]
+            }
+        ];
+
+        // === 2. 状态管理 ===
+        let currentColor = '#2563eb'; // 默认蓝色
+        let currentBgClass = 'bg-blue-50'; // 默认背景类
+
+        // === 3. 初始化渲染 ===
+        function renderIcons() {
+            const container = document.getElementById('icon-container');
+            container.innerHTML = '';
+
+            categories.forEach(cat => {
+                // 创建分类标题
+                const section = document.createElement('section');
+                
+                const header = document.createElement('h2');
+                header.className = 'text-lg font-bold mb-6 flex items-center text-slate-700';
+                header.innerHTML = `
+                    <div class="section-indicator w-1.5 h-6 rounded-full mr-3 transition-colors duration-300" style="background-color: ${currentColor}"></div>
+                    ${cat.title}
+                `;
+                section.appendChild(header);
+
+                // 创建网格
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-5';
+
+                cat.icons.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'icon-card bg-white rounded-xl border border-slate-100 p-5 flex flex-col items-center group relative cursor-default';
+                    
+                    card.innerHTML = `
+                        <div class="icon-bg p-4 rounded-xl mb-3 transition-colors duration-300 ${currentBgClass} group-hover:scale-110 transform duration-200">
+                            <!-- 这里仅仅放一个占位符，Lucide 会稍后替换它 -->
+                            <i data-lucide="${item.icon}" class="w-7 h-7 transition-colors duration-300 icon-svg" style="color: ${currentColor}"></i>
+                        </div>
+                        <span class="text-sm font-medium text-slate-600 mb-2">${item.label}</span>
+                        <button onclick="downloadIcon(this, '${item.label}', '${item.id}')" 
+                            class="mt-2 text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-400 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-transparent hover:border-blue-100">
+                            <i data-lucide="download" class="w-3 h-3"></i> 导出 SVG
+                        </button>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                section.appendChild(grid);
+                container.appendChild(section);
+            });
+
+            // 渲染图标
+            lucide.createIcons();
+        }
+
+        // === 4. 颜色更新逻辑 ===
+        function updateColor(hex, bgClass = 'bg-slate-50') {
+            currentColor = hex;
+            currentBgClass = bgClass; // 如果自定义颜色，这个 bgClass 通常设为通用淡色
+
+            // 更新输入框和文字显示
+            document.getElementById('customColorPicker').value = hex;
+            document.getElementById('colorHexDisplay').innerText = hex.toUpperCase();
+
+            // 更新 DOM 元素样式
+            // 1. 更新分类标题前的指示条
+            document.querySelectorAll('.section-indicator').forEach(el => {
+                el.style.backgroundColor = hex;
+            });
+
+            // 2. 更新图标颜色 (inline style)
+            document.querySelectorAll('.icon-svg').forEach(el => {
+                el.style.color = hex;
+            });
+
+            // 3. 更新图标背景色 (Tailwind class)
+            // 这是一个比较暴力的做法：移除所有可能的背景色，添加新的
+            // 为了简单起见，对于自定义颜色，我们统一使用 bg-slate-50 或利用 opacity
+            // 如果是预设按钮点击，我们会传入具体的 bgClass
+            // 如果是自定义取色器，我们需要一个半透明的背景
+            document.querySelectorAll('.icon-bg').forEach(el => {
+                // 移除旧的背景类（简单正则匹配预设的几种）
+                el.classList.remove('bg-blue-50', 'bg-slate-100', 'bg-emerald-50', 'bg-zinc-100', 'bg-orange-50', 'bg-red-50');
+                
+                if (bgClass === 'custom') {
+                    // 自定义颜色的背景处理：使用 hex 转换 rgba
+                    const rgb = hexToRgb(hex);
+                    el.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`;
+                } else {
+                    el.style.backgroundColor = ''; // 清除内联样式
+                    el.classList.add(bgClass);
+                }
+            });
+        }
+
+        // 自定义取色器处理
+        function handleCustomColor(hex) {
+            updateColor(hex, 'custom');
+        }
+
+        // 辅助：Hex 转 RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        // === 5. 下载逻辑 (核心) ===
+        function downloadIcon(btnElement, label, id) {
+            // 找到按钮所在的卡片
+            const card = btnElement.closest('.icon-card');
+            // 找到 Lucide 生成的 SVG 元素
+            const svgEl = card.querySelector('svg');
+
+            if (!svgEl) {
+                alert('未找到图标数据，请刷新页面重试');
+                return;
+            }
+
+            // 克隆节点以进行修改，不影响页面显示
+            const clone = svgEl.cloneNode(true);
+            
+            // 强制添加属性以确保兼容性
+            clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            clone.setAttribute('width', '24');
+            clone.setAttribute('height', '24');
+            
+            // 【关键】将当前的颜色硬编码进 stroke 属性
+            // 这样脱离了网页 CSS 环境，在 Word 里也是有色的
+            clone.setAttribute('stroke', currentColor);
+            
+            // 移除可能存在的 class 属性以保持纯净
+            clone.removeAttribute('class');
+
+            // 序列化 SVG
+            const svgData = clone.outerHTML;
+            
+            // 创建 Blob 下载
+            const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${id}_${label}.svg`; // 文件名：work_工作经历.svg
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // === 启动 ===
+        // 页面加载完成后渲染
+        window.addEventListener('DOMContentLoaded', () => {
+            renderIcons();
+            // 初始化顶部图标
+            lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>

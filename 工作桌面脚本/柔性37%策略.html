@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柔性 37% 法则：容忍区间模拟</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f8; color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 650px; width: 100%; }
+        
+        /* 顶部设置栏 */
+        .settings-bar { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+        .settings-bar label { font-size: 0.9em; color: #555; font-weight: bold; }
+        .settings-bar input { width: 60px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 1em; }
+        .btn-apply { padding: 6px 12px; font-size: 0.9em; background-color: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-apply:hover { background-color: #2c3e50; }
+
+        /* 进度条样式 */
+        .progress-bar { display: flex; height: 10px; width: 100%; margin-bottom: 20px; border-radius: 5px; overflow: hidden; }
+        .progress-segment { height: 100%; transition: opacity 0.3s; }
+        .seg-explore { background-color: #bdc3c7; flex: 0.37; } 
+        .seg-exploit { background-color: #3498db; flex: 0.63; } 
+        .phase-label { display: flex; justify-content: space-between; font-size: 0.8em; color: #7f8c8d; margin-top: -15px; margin-bottom: 15px; }
+
+        .game-area { margin: 20px 0; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #eef2f5; border-radius: 12px; position: relative; overflow: hidden; transition: background 0.3s; }
+        .game-area.explore-phase { border: 2px dashed #95a5a6; }
+        .game-area.exploit-phase { border: 2px solid #3498db; }
+        
+        .phase-indicator { position: absolute; top: 10px; right: 10px; font-size: 0.8em; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .tag-explore { background: #bdc3c7; color: #fff; }
+        .tag-exploit { background: #3498db; color: #fff; }
+
+        .diamond { font-size: 60px; font-weight: bold; color: #3498db; transition: transform 0.3s; }
+        
+        /* 智能数据面板 */
+        .smart-panel { display: flex; justify-content: space-around; width: 90%; background: #fff; padding: 8px; border-radius: 8px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .smart-item { font-size: 0.8em; color: #555; display: flex; flex-direction column; }
+        .smart-val { font-size: 1.1em; font-weight: bold; color: #2c3e50; }
+        .smart-tol { color: #e67e22; }
+
+        .controls { display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; margin-top: 20px; }
+        button { padding: 12px 24px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .btn-reject { background-color: #e74c3c; color: white; }
+        .btn-reject:hover { background-color: #c0392b; }
+        .btn-accept { background-color: #2ecc71; color: white; }
+        .btn-accept:hover { background-color: #27ae60; }
+        .btn-reset { background-color: #34495e; color: white; }
+        
+        .info { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; display: flex; justify-content: space-between; padding: 0 20px; }
+        
+        .result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .result-text { font-size: 1.3em; margin-bottom: 5px; font-weight: bold; margin-top: 10px; }
+        
+        /* 对比分析卡片 */
+        .comparison-box { display: flex; gap: 10px; width: 100%; margin-top: 15px; text-align: left; }
+        .strat-card { flex: 1; background: #f8f9fa; padding: 10px; border-radius: 8px; font-size: 0.85em; border-left: 3px solid #ccc; }
+        .strat-strict { border-color: #95a5a6; }
+        .strat-flex { border-color: #e67e22; background: #fffbf0; }
+        
+        .success-badge { color: #27ae60; font-weight: bold; }
+        .fail-badge { color: #e74c3c; font-weight: bold; }
+        .ok-badge { color: #f39c12; font-weight: bold; }
+        .forced-badge { color: #c0392b; font-weight: bold; border: 1px solid #c0392b; padding: 0 4px; border-radius: 4px; font-size: 0.9em;}
+
+        h2 { color: #2c3e50; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>钻石猎人：柔性 37% 策略</h2>
+    <p style="color: #666; font-size: 0.9em;">新思路：基于观察期波动的“容忍区间”，能否拯救僵化的算法？</p>
+    
+    <div class="settings-bar">
+        <label for="totalGemsInput">钻石总数 (N):</label>
+        <input type="number" id="totalGemsInput" value="15" min="5" max="100">
+        <button class="btn-apply" onclick="initGame()">重置 / 开始</button>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-segment seg-explore"></div>
+        <div class="progress-segment seg-exploit"></div>
+    </div>
+    <div class="phase-label">
+        <span>观察期 (建立基准)</span>
+        <span>行动期 (智能决策)</span>
+    </div>
+
+    <div class="info">
+        <span>第 <b id="currentStep">1</b> / <span id="totalStepDisplay">15</span> 颗</span>
+        <span>全场最高(上帝视角): <b id="godViewMax" style="color:transparent; text-shadow: 0 0 5px #ccc;">?</b></span>
+    </div>
+
+    <div class="game-area" id="gameArea">
+        <div id="phaseTag" class="phase-indicator tag-explore">观察期</div>
+        <div class="diamond" id="diamondValue">?</div>
+        
+        <!-- 智能数据看板 -->
+        <div class="smart-panel" id="smartPanel" style="opacity: 0.5;">
+            <div class="smart-item">
+                <span>最高基准</span>
+                <span class="smart-val" id="benchmarkVal">-</span>
+            </div>
+            <div class="smart-item">
+                <span>数据波动(StdDev)</span>
+                <span class="smart-val" id="stdDevVal">-</span>
+            </div>
+            <div class="smart-item">
+                <span>柔性满意线</span>
+                <span class="smart-val smart-tol" id="toleranceVal">-</span>
+            </div>
+        </div>
+
+        <div class="result-overlay" id="resultOverlay">
+            <div class="result-text" id="resultMessage"></div>
+            <div style="font-size: 0.9em; color: #555;" id="resultDetail"></div>
+            
+            <!-- 策略对比 -->
+            <div style="width:100%; margin-top:15px; font-weight:bold; font-size:0.9em; text-align:left;">🤖 AI 策略复盘：</div>
+            <div class="comparison-box">
+                <div class="strat-card strat-strict" id="strictAnalysis"></div>
+                <div class="strat-card strat-flex" id="flexAnalysis"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-reject" id="btnReject" onclick="nextDiamond()">下一个</button>
+        <button class="btn-accept" id="btnAccept" onclick="acceptDiamond()">成交</button>
+        <button class="btn-reset" id="btnReset" onclick="initGame()" style="display:none">再试一次</button>
+    </div>
+</div>
+
+<script>
+    let TOTAL_GEMS = 15;
+    let EXPLORE_COUNT = 5; 
+    
+    let gems = [];
+    let currentIndex = 0;
+    
+    // 策略变量
+    let benchmarkMax = 0; 
+    let exploreGems = [];
+    let stdDev = 0;
+    let toleranceThreshold = 0; // 柔性阈值
+    
+    let trueMaxVal = 0;
+    let isGameOver = false;
+
+    // UI Elements
+    const elTotalInput = document.getElementById('totalGemsInput');
+    const elTotalDisplay = document.getElementById('totalStepDisplay');
+    const elDiamond = document.getElementById('diamondValue');
+    const elStep = document.getElementById('currentStep');
+    const elBenchmark = document.getElementById('benchmarkVal');
+    const elStdDev = document.getElementById('stdDevVal');
+    const elTolerance = document.getElementById('toleranceVal');
+    const elSmartPanel = document.getElementById('smartPanel');
+    const elGameArea = document.getElementById('gameArea');
+    const elPhaseTag = document.getElementById('phaseTag');
+    const elOverlay = document.getElementById('resultOverlay');
+    const elMsg = document.getElementById('resultMessage');
+    const elDetail = document.getElementById('resultDetail');
+    const elStrictAnalysis = document.getElementById('strictAnalysis');
+    const elFlexAnalysis = document.getElementById('flexAnalysis');
+    
+    const btnReject = document.getElementById('btnReject');
+    const btnAccept = document.getElementById('btnAccept');
+    const btnReset = document.getElementById('btnReset');
+
+    function initGame() {
+        // 读取用户设置
+        let inputVal = parseInt(elTotalInput.value);
+        if(isNaN(inputVal) || inputVal < 5) inputVal = 5;
+        if(inputVal > 100) inputVal = 100;
+        TOTAL_GEMS = inputVal;
+        elTotalInput.value = TOTAL_GEMS; // 校正显示
+        elTotalDisplay.innerText = TOTAL_GEMS;
+
+        // 计算观察期 (N * 0.37)
+        EXPLORE_COUNT = Math.floor(TOTAL_GEMS * 0.37);
+        if (EXPLORE_COUNT < 1) EXPLORE_COUNT = 1;
+
+        // 生成随机钻石 (1-100)
+        let pool = Array.from({length: 100}, (_, i) => i + 1);
+        gems = [];
+        for(let i=0; i<TOTAL_GEMS; i++) {
+            const randIndex = Math.floor(Math.random() * pool.length);
+            gems.push(pool[randIndex]);
+            // 为了保证长序列也能随机取，我们允许放回或者不放回？
+            // 原逻辑是不放回 (不重复)，但如果 TOTAL_GEMS > 100 会有问题。
+            // 简单起见，如果 N > 50，我们允许重复，或者只是生成随机数。
+            // 这里为了简单，直接生成随机数，不依赖 pool splice，防止耗尽。
+            // 但为了保持游戏性（不重复更清晰），我们重新生成 pool 逻辑
+        }
+        // 重写生成逻辑，支持 N > 100 的情况 (单纯随机数)
+        gems = Array.from({length: TOTAL_GEMS}, () => Math.floor(Math.random() * 100) + 1);
+        
+        trueMaxVal = Math.max(...gems);
+        
+        // Reset Variables
+        currentIndex = 0;
+        benchmarkMax = 0;
+        exploreGems = [];
+        stdDev = 0;
+        toleranceThreshold = 0;
+        isGameOver = false;
+
+        updateUI();
+        elOverlay.style.display = 'none';
+        btnReject.style.display = 'inline-block';
+        btnAccept.style.display = 'inline-block';
+        btnReset.style.display = 'none';
+        
+        elBenchmark.innerText = "-";
+        elStdDev.innerText = "-";
+        elTolerance.innerText = "-";
+        elSmartPanel.style.opacity = "0.5";
+        
+        // 悄悄显示真值方便测试
+        document.getElementById('godViewMax').innerText = trueMaxVal;
+    }
+
+    function calculateStats(arr) {
+        if (arr.length === 0) return { mean: 0, std: 0 };
+        const mean = arr.reduce((a, b) => a + b) / arr.length;
+        const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+        return { mean, std: Math.sqrt(variance) };
+    }
+
+    function updateUI() {
+        if (currentIndex >= TOTAL_GEMS) {
+            endGame(null); 
+            return;
+        }
+
+        const isExplorePhase = currentIndex < EXPLORE_COUNT;
+        
+        if (isExplorePhase) {
+            elGameArea.className = "game-area explore-phase";
+            elPhaseTag.className = "phase-indicator tag-explore";
+            elPhaseTag.innerText = `观察期 (${currentIndex+1}/${EXPLORE_COUNT})`;
+            btnAccept.disabled = true;
+            btnAccept.style.opacity = "0.5";
+            btnAccept.innerText = "记录中...";
+        } else {
+            elGameArea.className = "game-area exploit-phase";
+            elPhaseTag.className = "phase-indicator tag-exploit";
+            elPhaseTag.innerText = "行动期 (超越即买)";
+            btnAccept.disabled = false;
+            btnAccept.style.opacity = "1";
+            btnAccept.innerText = "成交！";
+            elSmartPanel.style.opacity = "1";
+        }
+
+        // Animation
+        elDiamond.style.transform = "scale(0.5)";
+        elDiamond.style.opacity = "0";
+        setTimeout(() => {
+            const val = gems[currentIndex];
+            elDiamond.innerText = val;
+            elDiamond.style.transform = "scale(1)";
+            elDiamond.style.opacity = "1";
+            
+            // 提示逻辑
+            if (!isExplorePhase && val >= toleranceThreshold) {
+                if (val > benchmarkMax) {
+                    elDiamond.style.color = "#27ae60"; 
+                    elPhaseTag.innerText = "超强！(超越基准)";
+                    elPhaseTag.style.background = "#27ae60";
+                } else {
+                    elDiamond.style.color = "#e67e22"; 
+                    elPhaseTag.innerText = "不错！(容忍区间)";
+                    elPhaseTag.style.background = "#e67e22";
+                }
+            } else if (!isExplorePhase) {
+                 elDiamond.style.color = "#3498db"; 
+                 elPhaseTag.style.background = "#3498db";
+            } else {
+                 elDiamond.style.color = "#95a5a6"; 
+                 elPhaseTag.style.background = "#bdc3c7";
+            }
+
+        }, 150);
+
+        elStep.innerText = currentIndex + 1;
+    }
+
+    function nextDiamond() {
+        if (isGameOver) return;
+        
+        // 观察期逻辑：记录数据
+        if (currentIndex < EXPLORE_COUNT) {
+            exploreGems.push(gems[currentIndex]);
+            if (gems[currentIndex] > benchmarkMax) {
+                benchmarkMax = gems[currentIndex];
+            }
+            
+            const stats = calculateStats(exploreGems);
+            stdDev = stats.std;
+            // 柔性阈值公式
+            toleranceThreshold = Math.floor(benchmarkMax - (stdDev * 0.5));
+            
+            elBenchmark.innerText = benchmarkMax;
+            elStdDev.innerText = stdDev.toFixed(1);
+            elTolerance.innerText = toleranceThreshold;
+        }
+
+        currentIndex++;
+        if (currentIndex >= TOTAL_GEMS) {
+            endGame(gems[TOTAL_GEMS - 1]);
+        } else {
+            updateUI();
+        }
+    }
+
+    function acceptDiamond() {
+        if (isGameOver) return;
+        endGame(gems[currentIndex]);
+    }
+
+    function endGame(chosenVal) {
+        isGameOver = true;
+        elOverlay.style.display = 'flex';
+        btnReject.style.display = 'none';
+        btnAccept.style.display = 'none';
+        btnReset.style.display = 'inline-block';
+
+        // 1. 玩家结果
+        if (chosenVal === trueMaxVal) {
+            elMsg.innerHTML = `<span class="success">🎉 完美！</span>`;
+            elDetail.innerText = `你拿到了 ${chosenVal} (全场最高)。`;
+        } else if (chosenVal >= trueMaxVal * 0.9) {
+             elMsg.innerHTML = `<span class="ok-badge">👌 很棒的选择！</span>`;
+             elDetail.innerText = `你拿到了 ${chosenVal}，最高是 ${trueMaxVal}。`;
+        } else {
+            elMsg.innerHTML = `<span class="fail">💔 有点遗憾</span>`;
+            elDetail.innerText = `你拿到了 ${chosenVal}，但最高是 ${trueMaxVal}。`;
+        }
+
+        // 2. 双策略模拟
+        // A. 严格 37% 策略 (Benchmark Strict)
+        let strictChoice = -1;
+        let strictResult = "";
+        let strictForced = false;
+        
+        // 模拟观察期
+        let simBenchmark = 0;
+        for(let i=0; i<EXPLORE_COUNT; i++) if(gems[i] > simBenchmark) simBenchmark = gems[i];
+        
+        // 模拟行动期
+        for(let i=EXPLORE_COUNT; i<TOTAL_GEMS; i++) {
+            if(gems[i] > simBenchmark) {
+                strictChoice = gems[i];
+                break;
+            }
+        }
+        // 如果没找到，被迫选最后一个
+        if(strictChoice === -1) {
+            strictChoice = gems[TOTAL_GEMS-1];
+            strictForced = true;
+        }
+
+        // 判定严格策略
+        if (strictChoice === trueMaxVal) {
+            strictResult = `<span class="success-badge">赢</span> 选中最优 (${strictChoice})`;
+        } else if (strictForced) {
+            // 这里是用户要求的修改点：明确显示尾部结果
+            strictResult = `<span class="forced-badge">惨败</span> 基准太高，被迫接盘最后一个: <b>${strictChoice}</b>`;
+        } else {
+            strictResult = `<span class="fail-badge">输</span> 选了 ${strictChoice} (最高 ${trueMaxVal})`;
+        }
+
+
+        // B. 柔性策略 (Benchmark - k*StdDev)
+        let flexChoice = -1;
+        let flexResult = "";
+        
+        let simExploreArr = gems.slice(0, EXPLORE_COUNT);
+        let simStats = calculateStats(simExploreArr);
+        let simTol = simBenchmark - (simStats.std * 0.5); 
+
+        for(let i=EXPLORE_COUNT; i<TOTAL_GEMS; i++) {
+            if(gems[i] >= simTol) {
+                flexChoice = gems[i];
+                break;
+            }
+        }
+        if(flexChoice === -1) flexChoice = gems[TOTAL_GEMS-1];
+
+        if (flexChoice === trueMaxVal) flexResult = `<span class="success-badge">完美</span> 选中最优 (${flexChoice})`;
+        else if (flexChoice >= trueMaxVal * 0.9) flexResult = `<span class="ok-badge">满意</span> 选中次优 ${flexChoice}`;
+        else flexResult = `<span class="fail-badge">一般</span> 选了 ${flexChoice}`;
+        
+        // 特殊高亮
+        let note = "";
+        if (gems.indexOf(trueMaxVal) < EXPLORE_COUNT) {
+            if (flexChoice >= trueMaxVal * 0.9) {
+                note = "<br><strong>🔥 逆天改命！</strong> 最优在观察期，严格AI已死，柔性AI胜。";
+            }
+        }
+
+        elStrictAnalysis.innerHTML = `<strong>1. 严格 37% 策略</strong><br>拒绝前 ${EXPLORE_COUNT} 个，基准 ${simBenchmark}<br>结果: ${strictResult}`;
+        elFlexAnalysis.innerHTML = `<strong>2. 柔性策略</strong><br>满意线 > ${Math.floor(simTol)} (波动:${simStats.std.toFixed(0)})<br>结果: ${flexResult}${note}`;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
